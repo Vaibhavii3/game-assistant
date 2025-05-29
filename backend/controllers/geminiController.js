@@ -28,3 +28,17 @@ exports.createCharacter = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate character' });
   }
 };
+
+exports.generateDialogue = async (req, res) => {
+  const prompt = req.body.prompt || "Create an NPC dialogue for a side quest";
+
+  try {
+    const response = await callGemini(prompt, 'dialogue');
+    const saved = await Prompt.create({ prompt, response: JSON.stringify(response), type: 'dialogue' });
+
+    res.json({ dialogue: response, savedId: saved._id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate dialogue' });
+  }
+};

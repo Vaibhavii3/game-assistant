@@ -19,13 +19,25 @@ exports.callGemini = async (promptText, type = 'text') => {
       `;
     }
 
+    if (type === 'dialogue') {
+    fullPrompt += `
+
+      Respond in JSON format with:
+      - npcName
+      - questTitle
+      - location
+      - reward
+      - dialogue: an array of objects with "line" (the spoken dialogue) and "emotion" (tone or feeling)
+      `;
+    }
+
     const res = await axios.post(url, {
       contents: [{ parts: [{ text: fullPrompt }] }],
     });
 
     const raw = res.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    if (type === 'character') {
+    if (type === 'character' || type === 'dialogue') {
 
       try {
         const clean = raw.trim().replace(/^```json\s*|\s*```$/g, '');
