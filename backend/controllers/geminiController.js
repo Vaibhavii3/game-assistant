@@ -1,4 +1,4 @@
-const { callGemini } = require('../services/geminiService')
+const { callGemini, generateImage } = require('../services/geminiService')
 const Prompt = require('../models/propmtModel')
 
 exports.handlePrompt = async (req, res) => {
@@ -40,5 +40,17 @@ exports.generateDialogue = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to generate dialogue' });
+  }
+};
+
+exports.createImage = async (req, res) => {
+  const { prompt } = req.body;
+
+  try {
+    const imageUrl = await generateImage(prompt);
+    res.json({ imageUrl });
+  } catch (err) {
+    console.error('Replicate Error:', err.message || err);
+    res.status(500).json({ error: 'Image generation failed' });
   }
 };
