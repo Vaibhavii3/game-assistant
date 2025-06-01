@@ -147,14 +147,14 @@ const Home = () => {
 
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg,rgb(54, 55, 59) 0%, #764ba2 100%);
           min-height: 100vh;
         }
 
         .app {
           min-height: 100vh;
           padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg,rgb(9, 9, 9) 0%, #764ba2 100%);
         }
 
         .container {
@@ -169,7 +169,7 @@ const Home = () => {
         }
 
         .header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg,rgb(9, 9, 9) 0%, #764ba2 100%);
           padding: 40px;
           text-align: center;
           color: white;
@@ -272,7 +272,7 @@ const Home = () => {
         }
 
         .submit-btn {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg,rgb(9, 9, 9) 0%, #764ba2 100%);
           color: white;
           border: none;
           padding: 16px 32px;
@@ -436,7 +436,7 @@ const Home = () => {
 
       <div className="container">
         <div className="header">
-          <h1>Gemini AI Creative Studio</h1>
+          <h1>The MythiCraft Engine</h1>
           <p>Generate text, create characters, craft dialogue, and create images with AI</p>
         </div>
 
