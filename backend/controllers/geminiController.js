@@ -1,12 +1,16 @@
-const { callGemini, generateImage } = require('../services/geminiService')
-const Prompt = require('../models/propmtModel')
+const { callGemini } = require('../services/geminiService');
+const Prompt = require('../models/propmtModel');
 
 exports.handlePrompt = async (req, res) => {
   const { prompt, type } = req.body;
 
   try {
     const response = await callGemini(prompt, type || 'text');
-    const saved = await Prompt.create({ prompt, response: JSON.stringify(response), type: type || 'text' });
+    const saved = await Prompt.create({ 
+      prompt, 
+      response: JSON.stringify(response), 
+      type: type || 'text' 
+    });
 
     res.json({ response, savedId: saved._id });
   } catch (error) {
@@ -20,7 +24,11 @@ exports.createCharacter = async (req, res) => {
 
   try {
     const response = await callGemini(prompt, 'character');
-    const saved = await Prompt.create({ prompt, response: JSON.stringify(response), type: 'character' });
+    const saved = await Prompt.create({ 
+      prompt, 
+      response: JSON.stringify(response), 
+      type: 'character' 
+    });
 
     res.json({ character: response, savedId: saved._id });
   } catch (err) {
@@ -34,7 +42,11 @@ exports.generateDialogue = async (req, res) => {
 
   try {
     const response = await callGemini(prompt, 'dialogue');
-    const saved = await Prompt.create({ prompt, response: JSON.stringify(response), type: 'dialogue' });
+    const saved = await Prompt.create({ 
+      prompt, 
+      response: JSON.stringify(response), 
+      type: 'dialogue' 
+    });
 
     res.json({ dialogue: response, savedId: saved._id });
   } catch (err) {
@@ -43,14 +55,4 @@ exports.generateDialogue = async (req, res) => {
   }
 };
 
-exports.createImage = async (req, res) => {
-  const { prompt } = req.body;
-
-  try {
-    const imageUrl = await generateImage(prompt);
-    res.json({ imageUrl });
-  } catch (err) {
-    console.error('Replicate Error:', err.message || err);
-    res.status(500).json({ error: 'Image generation failed' });
-  }
-};
+// Image generation function removed
