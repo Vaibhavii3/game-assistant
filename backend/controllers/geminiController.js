@@ -450,50 +450,99 @@ exports.generateImageFromText = async (req, res) => {
   }
 };
 
-// NEW: Image-to-Image generation
+
+
+
+
+
+
+
+
+
+
+
 exports.generateImageFromImageInput = async (req, res) => {
-  const { prompt, sourceImageUrl, width, height, model, seed } = req.body;
-
-  if (!prompt || !sourceImageUrl) {
-    return res.status(400).json({ error: 'Prompt and source image URL are required' });
-  }
-
   try {
-    const imageData = await generateImageFromImage(sourceImageUrl, prompt, {
+    const { prompt, sourceImage, width, height, model, strength, artStyle, seed, assetType } = req.body;
+
+    // Validation
+    if (!prompt) {
+      return res.status(400).json({ 
+        error: 'Prompt is required',
+        example: 'Convert this sketch into a fantasy warrior character'
+      });
+    }
+
+    if (!sourceImage) {
+      return res.status(400).json({ 
+        error: 'Source image is required (base64 format)',
+        example: 'data:image/png;base64,iVBORw0KG...'
+      });
+    }
+
+    console.log('🎨 Starting image-to-image conversion...');
+    console.log('Asset Type:', assetType || 'general');
+    console.log('Art Style:', artStyle || '2d');
+
+    // Generate enhanced prompt based on asset type
+    let enhancedPrompt = prompt;
+    
+    if (assetType) {
+      const assetEnhancers = {
+        'character': 'game character design, detailed character art',
+        'scene': 'game environment, detailed background art',
+        'item': 'game item icon, detailed asset design',
+        'enemy': 'game enemy design, creature concept art',
+        'ui': 'game UI element, polished interface design'
+      };
+      
+      const enhancer = assetEnhancers[assetType] || '';
+      enhancedPrompt = `${prompt}, ${enhancer}`;
+    }
+
+    // Call the image-to-image service
+    const imageData = await generateImageFromImage(sourceImage, enhancedPrompt, {
       width: width || 1024,
       height: height || 1024,
-      model: model || 'flux',
-      seed: seed || Math.floor(Math.random() * 1000000),
-      nologo: true,
-      enhance: true
+      model: model || 'img2img',
+      strength: strength || 0.75,
+      artStyle: artStyle || '2d',
+      seed: seed || Math.floor(Math.random() * 1000000)
     });
 
+    // Save to database
     const saved = await GameContent.create({
-      prompt: `${prompt} (from source image)`,
+      prompt: enhancedPrompt,
       response: imageData,
-      type: 'image',
-      category: 'image-to-image',
+      type: 'image-to-image',
+      category: assetType || 'image-conversion',
       metadata: {
         imageModel: imageData.model,
         dimensions: `${imageData.width}x${imageData.height}`,
         seed: imageData.seed,
-        sourceImage: sourceImageUrl,
+        artStyle: imageData.artStyle,
+        strength: imageData.strength,
+        transformationType: 'sketch-to-art',
         validated: true
       }
     });
 
     res.json({
       success: true,
+      message: 'Image transformed successfully!',
       imageUrl: imageData.imageUrl,
-      imageData,
-      savedId: saved._id
+      imageData: {
+        ...imageData,
+        savedId: saved._id
+      }
     });
+
   } catch (err) {
-    console.error('Image-to-image error:', err);
+    console.error('❌ Image-to-image error:', err);
     res.status(500).json({
-      error: 'Failed to generate image from image',
-      details: err.message
+      error: 'Failed to transform image',
+      details: err.message,
+      suggestion: 'Try adjusting the strength (0.5-0.9) or use a different art style'
     });
   }
 };
-

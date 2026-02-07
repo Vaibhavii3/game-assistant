@@ -15,7 +15,7 @@ const gameContentSchema = new mongoose.Schema({
   type: { 
     type: String, 
     required: true,
-    enum: ['character', 'quest', 'dialogue', 'enemy', 'item', 'world', 'story', 'general', 'image'],
+    enum: ['character', 'quest', 'dialogue', 'enemy', 'item', 'world', 'story', 'general', 'image', 'image-to-image'],
     index: true
   },
   

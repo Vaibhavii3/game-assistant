@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   User, MessageCircle, Sword, Shield, MapPin, Scroll, BookOpen, Image,
-  Send, Copy, Download, Loader2, ChevronRight
+  Send, Copy, Download, Loader2, ChevronRight, Upload, RefreshCw, Palette
 } from 'lucide-react';
 
 const Home = () => {
@@ -12,7 +12,13 @@ const Home = () => {
   const [error, setError] = useState('');
   const [savedId, setSavedId] = useState('');
 
-  // Updated tabs with image generation
+  // Image-to-Image specific state
+  const [sourceImage, setSourceImage] = useState(null);
+  const [sourceImagePreview, setSourceImagePreview] = useState(null);
+  const [artStyle, setArtStyle] = useState('2d');
+  const [assetType, setAssetType] = useState('character');
+  const [strength, setStrength] = useState(0.75);
+
   const tabs = [
     { id: 'character', label: 'Character', icon: User },
     { id: 'quest', label: 'Quest', icon: Scroll },
@@ -21,7 +27,8 @@ const Home = () => {
     { id: 'enemy', label: 'Enemy', icon: Sword },
     { id: 'item', label: 'Item', icon: Shield },
     { id: 'story', label: 'Story', icon: BookOpen },
-    { id: 'image', label: 'Image', icon: Image }
+    { id: 'image', label: 'Image Gen', icon: Image },
+    { id: 'img2img', label: 'Sketch→Art', icon: RefreshCw }
   ];
 
   const placeholders = {
@@ -32,7 +39,8 @@ const Home = () => {
     enemy: "Design a sea serpent boss...",
     item: "Create a trident of the depths...",
     story: "Write a dramatic ocean voyage...",
-    image: "A mystical character portrait, digital art style..."
+    image: "A mystical character portrait, digital art style...",
+    img2img: "Convert this sketch into a professional 2D game character with detailed armor..."
   };
 
   const apiEndpoints = {
@@ -43,10 +51,48 @@ const Home = () => {
     enemy: 'http://localhost:5000/api/gemini/enemy',
     item: 'http://localhost:5000/api/gemini/item',
     story: 'http://localhost:5000/api/gemini/story',
-    image: 'http://localhost:5000/api/gemini/image'
+    image: 'http://localhost:5000/api/gemini/image',
+    img2img: 'http://localhost:5000/api/gemini/image-to-image'
   };
 
-  // Format JSON data into clean text
+  const artStyles = [
+    { value: '2d', label: '2D Game Art', desc: 'Hand-painted style' },
+    { value: '3d', label: '3D Rendered', desc: 'Realistic 3D model' },
+    { value: 'anime', label: 'Anime Style', desc: 'Cel-shaded art' },
+    { value: 'pixel', label: 'Pixel Art', desc: 'Retro gaming' },
+    { value: 'realistic', label: 'Realistic', desc: 'Photorealistic' }
+  ];
+
+  const assetTypes = [
+    { value: 'character', label: 'Character', icon: User },
+    { value: 'scene', label: 'Scene/BG', icon: MapPin },
+    { value: 'item', label: 'Item/Weapon', icon: Shield },
+    { value: 'enemy', label: 'Enemy/Monster', icon: Sword },
+    { value: 'ui', label: 'UI Element', icon: Image }
+  ];
+
+  // Handle image file upload
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file');
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSourceImagePreview(event.target.result);
+      setSourceImage(event.target.result);
+    };
+    reader.readAsDataURL(file);
+    setError('');
+  };
+
+  // Format content (existing function)
   const formatContent = (data, type) => {
     if (typeof data === 'string') return data;
     
@@ -57,7 +103,6 @@ const Home = () => {
 
     let formatted = '';
 
-    // Character
     if (type === 'character' && content.name) {
       formatted += `${content.name}\n${'─'.repeat(40)}\n\n`;
       if (content.class) formatted += `Class: ${content.class}\n\n`;
@@ -76,10 +121,7 @@ const Home = () => {
           formatted += `${key}: ${value}\n`;
         });
       }
-    }
-    
-    // Quest
-    else if (type === 'quest' && content.title) {
+    } else if (type === 'quest' && content.title) {
       formatted += `${content.title}\n${'─'.repeat(40)}\n\n`;
       if (content.type && content.difficulty) {
         formatted += `Type: ${content.type} | Difficulty: ${content.difficulty}\n\n`;
@@ -92,116 +134,8 @@ const Home = () => {
           const task = typeof obj === 'string' ? obj : obj.task;
           formatted += `${i + 1}. ${task}\n`;
         });
-        formatted += '\n';
       }
-      
-      if (content.rewards) {
-        formatted += `Rewards:\n`;
-        if (content.rewards.experience) formatted += `XP: ${content.rewards.experience}\n`;
-        if (content.rewards.gold) formatted += `Gold: ${content.rewards.gold}\n`;
-        if (content.rewards.items) {
-          content.rewards.items.forEach(item => formatted += `• ${item}\n`);
-        }
-      }
-    }
-    
-    // Dialogue
-    else if (type === 'dialogue' && content.npcName) {
-      formatted += `${content.npcName}\n${'─'.repeat(40)}\n\n`;
-      if (content.npcRole) formatted += `Role: ${content.npcRole}\n`;
-      if (content.location) formatted += `Location: ${content.location}\n\n`;
-      
-      if (content.dialogueOptions && Array.isArray(content.dialogueOptions)) {
-        content.dialogueOptions.forEach((option) => {
-          if (option.npcLine) formatted += `NPC: "${option.npcLine}"\n\n`;
-          
-          if (option.playerChoices && Array.isArray(option.playerChoices)) {
-            formatted += `Player Choices:\n`;
-            option.playerChoices.forEach((choice, i) => {
-              formatted += `${i + 1}. "${choice.text}"\n`;
-              if (choice.response) formatted += `   → "${choice.response}"\n\n`;
-            });
-          }
-        });
-      }
-    }
-    
-    // World
-    else if (type === 'world' && content.name) {
-      formatted += `${content.name}\n${'─'.repeat(40)}\n\n`;
-      if (content.type) formatted += `Type: ${content.type}\n\n`;
-      if (content.description) formatted += `${content.description}\n\n`;
-      
-      if (content.pointsOfInterest && Array.isArray(content.pointsOfInterest)) {
-        formatted += `Points of Interest:\n`;
-        content.pointsOfInterest.forEach(poi => {
-          formatted += `• ${poi.name || poi}\n`;
-          if (poi.description) formatted += `  ${poi.description}\n`;
-        });
-      }
-    }
-    
-    // Enemy
-    else if (type === 'enemy' && content.name) {
-      formatted += `${content.name}\n${'─'.repeat(40)}\n\n`;
-      if (content.type) formatted += `Type: ${content.type}\n`;
-      if (content.level) formatted += `Level: ${content.level}\n\n`;
-      if (content.description) formatted += `${content.description}\n\n`;
-      
-      if (content.stats) {
-        formatted += `Stats:\n`;
-        Object.entries(content.stats).forEach(([key, value]) => {
-          formatted += `${key}: ${value}\n`;
-        });
-        formatted += '\n';
-      }
-      
-      if (content.abilities && Array.isArray(content.abilities)) {
-        formatted += `Abilities:\n`;
-        content.abilities.forEach(ability => {
-          if (typeof ability === 'object') {
-            formatted += `• ${ability.name}`;
-            if (ability.damage) formatted += ` (${ability.damage} damage)`;
-            formatted += '\n';
-          } else {
-            formatted += `• ${ability}\n`;
-          }
-        });
-      }
-    }
-    
-    // Item
-    else if (type === 'item' && content.name) {
-      formatted += `${content.name}\n${'─'.repeat(40)}\n\n`;
-      if (content.type && content.rarity) {
-        formatted += `Type: ${content.type} | Rarity: ${content.rarity}\n\n`;
-      }
-      if (content.description) formatted += `${content.description}\n\n`;
-      
-      if (content.effects && Array.isArray(content.effects)) {
-        formatted += `Effects:\n`;
-        content.effects.forEach(effect => formatted += `• ${effect}\n`);
-        formatted += '\n';
-      }
-      
-      if (content.lore) formatted += `Lore:\n${content.lore}\n`;
-    }
-    
-    // Story
-    else if (type === 'story' && content.title) {
-      formatted += `${content.title}\n${'─'.repeat(40)}\n\n`;
-      if (content.scene) formatted += `${content.scene}\n\n`;
-      
-      if (content.choices && Array.isArray(content.choices)) {
-        formatted += `Player Choices:\n\n`;
-        content.choices.forEach((choice, i) => {
-          formatted += `${i + 1}. ${choice.option}\n`;
-          if (choice.consequence) formatted += `   → ${choice.consequence}\n\n`;
-        });
-      }
-    }
-    
-    else {
+    } else {
       formatted = JSON.stringify(content, null, 2);
     }
 
@@ -214,6 +148,12 @@ const Home = () => {
       return;
     }
 
+    // Image-to-Image specific validation
+    if (activeTab === 'img2img' && !sourceImage) {
+      setError('Please upload a source image (sketch or reference)');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setResponse(null);
@@ -222,12 +162,37 @@ const Home = () => {
     try {
       const endpoint = apiEndpoints[activeTab];
 
+      let requestBody;
+
+      if (activeTab === 'img2img') {
+        requestBody = {
+          prompt,
+          sourceImage,
+          artStyle,
+          assetType,
+          strength,
+          width: 1024,
+          height: 1024
+        };
+      } else if (activeTab === 'image') {
+        requestBody = {
+          prompt,
+          artStyle,
+          assetType,
+          width: 1024,
+          height: 1024,
+          model: 'flux'
+        };
+      } else {
+        requestBody = { prompt };
+      }
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await res.json();
@@ -238,12 +203,13 @@ const Home = () => {
 
       console.log('API Response:', data);
 
-      // Handle image response
-      if (activeTab === 'image') {
+      // Handle image responses
+      if (activeTab === 'image' || activeTab === 'img2img') {
         setResponse({
           type: 'image',
           url: data.imageUrl || data.url,
-          raw: data
+          raw: data,
+          metadata: data.imageData
         });
       } else {
         const formattedContent = formatContent(data, activeTab);
@@ -254,8 +220,8 @@ const Home = () => {
         });
       }
       
-      if (data.savedId) {
-        setSavedId(data.savedId);
+      if (data.savedId || data.imageData?.savedId) {
+        setSavedId(data.savedId || data.imageData.savedId);
       }
     } catch (err) {
       setError(err.message || 'Something went wrong');
@@ -271,9 +237,95 @@ const Home = () => {
   const downloadImage = (url) => {
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'generated-image.png';
+    link.download = `game-asset-${Date.now()}.png`;
     link.click();
   };
+
+  const renderImageToImageUI = () => (
+    <div className="img2img-container">
+      <div className="upload-section">
+        <div className="upload-box">
+          <input
+            type="file"
+            id="imageUpload"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+          <label htmlFor="imageUpload" className="upload-label">
+            {sourceImagePreview ? (
+              <div className="preview-container">
+                <img src={sourceImagePreview} alt="Source" className="source-preview" />
+                <div className="upload-overlay">
+                  <Upload size={24} />
+                  <span>Change Image</span>
+                </div>
+              </div>
+            ) : (
+              <div className="upload-placeholder">
+                <Upload size={48} />
+                <h3>Upload Your Sketch</h3>
+                <p>Click to upload an image (PNG, JPG)</p>
+              </div>
+            )}
+          </label>
+        </div>
+      </div>
+
+      <div className="settings-grid">
+        <div className="setting-group">
+          <label className="setting-label">Asset Type</label>
+          <div className="asset-type-grid">
+            {assetTypes.map((type) => (
+              <button
+                key={type.value}
+                className={`asset-type-btn ${assetType === type.value ? 'active' : ''}`}
+                onClick={() => setAssetType(type.value)}
+              >
+                <type.icon size={20} />
+                <span>{type.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="setting-group">
+          <label className="setting-label">Art Style</label>
+          <div className="style-select-grid">
+            {artStyles.map((style) => (
+              <button
+                key={style.value}
+                className={`style-btn ${artStyle === style.value ? 'active' : ''}`}
+                onClick={() => setArtStyle(style.value)}
+              >
+                <strong>{style.label}</strong>
+                <span>{style.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="setting-group">
+          <label className="setting-label">
+            Transformation Strength: {(strength * 100).toFixed(0)}%
+          </label>
+          <input
+            type="range"
+            min="0.5"
+            max="0.95"
+            step="0.05"
+            value={strength}
+            onChange={(e) => setStrength(parseFloat(e.target.value))}
+            className="strength-slider"
+          />
+          <div className="slider-labels">
+            <span>Keep original (50%)</span>
+            <span>Full transform (95%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderResponse = () => {
     if (!response) return null;
@@ -282,18 +334,46 @@ const Home = () => {
       return (
         <div className="response-box">
           <div className="response-header">
-            <h3>Generated Image</h3>
-            <button 
-              onClick={() => downloadImage(response.url)}
-              className="icon-btn"
-              title="Download"
-            >
-              <Download size={18} />
-            </button>
+            <h3>{activeTab === 'img2img' ? 'Transformed Image' : 'Generated Image'}</h3>
+            <div className="header-actions">
+              {savedId && <span className="id-badge">{savedId.substring(0, 8)}</span>}
+              <button 
+                onClick={() => downloadImage(response.url)}
+                className="icon-btn"
+                title="Download"
+              >
+                <Download size={18} />
+              </button>
+            </div>
           </div>
-          <div className="image-wrapper">
-            <img src={response.url} alt="Generated" className="generated-image" />
-          </div>
+
+          {activeTab === 'img2img' && sourceImagePreview && (
+            <div className="comparison-grid">
+              <div className="comparison-item">
+                <h4>Original Sketch</h4>
+                <img src={sourceImagePreview} alt="Original" className="comparison-img" />
+              </div>
+              <div className="comparison-arrow">→</div>
+              <div className="comparison-item">
+                <h4>Professional Art</h4>
+                <img src={response.url} alt="Generated" className="comparison-img" />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'image' && (
+            <div className="image-wrapper">
+              <img src={response.url} alt="Generated" className="generated-image" />
+            </div>
+          )}
+
+          {response.metadata && (
+            <div className="metadata">
+              <p><strong>Style:</strong> {response.metadata.artStyle || 'Default'}</p>
+              <p><strong>Model:</strong> {response.metadata.model}</p>
+              <p><strong>Dimensions:</strong> {response.metadata.width}x{response.metadata.height}</p>
+            </div>
+          )}
         </div>
       );
     }
@@ -359,13 +439,11 @@ const Home = () => {
           font-weight: 300;
           color: #fdfcfa;
           margin-bottom: 8px;
-          letter-spacing: -0.5px;
         }
 
         .header p {
           font-size: 0.95rem;
           color: rgba(253, 252, 250, 0.8);
-          font-weight: 400;
         }
 
         .tabs {
@@ -373,16 +451,6 @@ const Home = () => {
           background: #f5ede0;
           border-bottom: 1px solid #d6ba90;
           overflow-x: auto;
-          padding: 0;
-        }
-
-        .tabs::-webkit-scrollbar {
-          height: 4px;
-        }
-
-        .tabs::-webkit-scrollbar-thumb {
-          background: #92400e;
-          border-radius: 2px;
         }
 
         .tab {
@@ -414,20 +482,12 @@ const Home = () => {
           border-bottom: 2px solid #92400e;
         }
 
-        .tab-icon {
-          color: inherit;
-        }
-
         .content {
           padding: 32px;
         }
 
         .form {
           margin-bottom: 28px;
-        }
-
-        .input-wrapper {
-          margin-bottom: 20px;
         }
 
         .textarea {
@@ -441,17 +501,202 @@ const Home = () => {
           resize: vertical;
           transition: all 0.2s ease;
           background: #fdfcfa;
-          color: #2d3748;
-        }
-
-        .textarea::placeholder {
-          color: #a89880;
+          margin-bottom: 20px;
         }
 
         .textarea:focus {
           outline: none;
           border-color: #92400e;
           background: #fff;
+        }
+
+        /* Image-to-Image Styles */
+        .img2img-container {
+          margin-bottom: 24px;
+        }
+
+        .upload-section {
+          margin-bottom: 24px;
+        }
+
+        .upload-box {
+          border: 2px dashed #d6ba90;
+          border-radius: 12px;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .upload-box:hover {
+          border-color: #92400e;
+          background: #faf9f7;
+        }
+
+        .upload-label {
+          display: block;
+          cursor: pointer;
+        }
+
+        .preview-container {
+          position: relative;
+          width: 100%;
+          height: 300px;
+        }
+
+        .source-preview {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+
+        .upload-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(146, 64, 14, 0.9);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          color: #fdfcfa;
+        }
+
+        .preview-container:hover .upload-overlay {
+          opacity: 1;
+        }
+
+        .upload-placeholder {
+          padding: 60px 20px;
+          text-align: center;
+          color: #92400e;
+        }
+
+        .upload-placeholder h3 {
+          margin: 16px 0 8px;
+          font-size: 1.1rem;
+        }
+
+        .upload-placeholder p {
+          color: #a89880;
+          font-size: 0.9rem;
+        }
+
+        .settings-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .setting-group {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .setting-label {
+          font-weight: 600;
+          color: #2d3748;
+          font-size: 0.9rem;
+        }
+
+        .asset-type-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 10px;
+        }
+
+        .asset-type-btn {
+          padding: 14px;
+          border: 2px solid #d6ba90;
+          background: white;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 500;
+          color: #625448;
+        }
+
+        .asset-type-btn:hover {
+          border-color: #92400e;
+          background: #faf9f7;
+        }
+
+        .asset-type-btn.active {
+          border-color: #92400e;
+          background: #f5ede0;
+          color: #92400e;
+        }
+
+        .style-select-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 10px;
+        }
+
+        .style-btn {
+          padding: 12px;
+          border: 2px solid #d6ba90;
+          background: white;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          text-align: left;
+        }
+
+        .style-btn strong {
+          color: #2d3748;
+          font-size: 0.9rem;
+        }
+
+        .style-btn span {
+          color: #a89880;
+          font-size: 0.75rem;
+        }
+
+        .style-btn:hover {
+          border-color: #92400e;
+          background: #faf9f7;
+        }
+
+        .style-btn.active {
+          border-color: #92400e;
+          background: #f5ede0;
+        }
+
+        .strength-slider {
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+          background: #e6e1d6;
+          outline: none;
+          -webkit-appearance: none;
+        }
+
+        .strength-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #92400e;
+          cursor: pointer;
+        }
+
+        .slider-labels {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          color: #a89880;
         }
 
         .submit-btn {
@@ -486,7 +731,6 @@ const Home = () => {
           padding: 14px 18px;
           border-radius: 6px;
           margin-bottom: 20px;
-          font-size: 0.9rem;
         }
 
         .response-box {
@@ -520,7 +764,6 @@ const Home = () => {
         .response-header h3 {
           font-size: 1.1rem;
           font-weight: 500;
-          color: #2d3748;
         }
 
         .header-actions {
@@ -556,6 +799,58 @@ const Home = () => {
           background: #e8dcc8;
         }
 
+        .comparison-grid {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          gap: 20px;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .comparison-item h4 {
+          font-size: 0.9rem;
+          margin-bottom: 12px;
+          color: #625448;
+          text-align: center;
+        }
+
+        .comparison-img {
+          width: 100%;
+          height: auto;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .comparison-arrow {
+          font-size: 2rem;
+          color: #92400e;
+          font-weight: bold;
+        }
+
+        .image-wrapper {
+          text-align: center;
+          margin-bottom: 16px;
+        }
+
+        .generated-image {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .metadata {
+          padding: 16px;
+          background: #faf9f7;
+          border-radius: 6px;
+          font-size: 0.85rem;
+        }
+
+        .metadata p {
+          margin: 4px 0;
+          color: #625448;
+        }
+
         .content-display {
           font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
           font-size: 14px;
@@ -567,18 +862,6 @@ const Home = () => {
           padding: 18px;
           border-radius: 6px;
           border: 1px solid #e6e1d6;
-          overflow-x: auto;
-        }
-
-        .image-wrapper {
-          text-align: center;
-        }
-
-        .generated-image {
-          max-width: 100%;
-          height: auto;
-          border-radius: 8px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         }
 
         .spinner {
@@ -591,40 +874,18 @@ const Home = () => {
         }
 
         @media (max-width: 768px) {
-          .app {
-            padding: 12px;
+          .comparison-grid {
+            grid-template-columns: 1fr;
           }
 
-          .header {
-            padding: 28px 20px;
+          .comparison-arrow {
+            transform: rotate(90deg);
+            margin: 12px 0;
           }
 
-          .header h1 {
-            font-size: 1.5rem;
-          }
-
-          .content {
-            padding: 20px;
-          }
-
-          .tabs {
-            gap: 0;
-          }
-
-          .tab {
-            min-width: 100px;
-            padding: 12px 16px;
-            font-size: 0.85rem;
-          }
-
-          .response-header {
-            flex-direction: column;
-            gap: 12px;
-            align-items: flex-start;
-          }
-
-          .content-display {
-            font-size: 13px;
+          .asset-type-grid,
+          .style-select-grid {
+            grid-template-columns: 1fr 1fr;
           }
         }
       `}</style>
@@ -645,9 +906,11 @@ const Home = () => {
                 setPrompt('');
                 setResponse(null);
                 setError('');
+                setSourceImage(null);
+                setSourceImagePreview(null);
               }}
             >
-              <tab.icon size={18} className="tab-icon" />
+              <tab.icon size={18} />
               {tab.label}
             </button>
           ))}
@@ -657,15 +920,15 @@ const Home = () => {
           {error && <div className="error">{error}</div>}
 
           <div className="form">
-            <div className="input-wrapper">
-              <textarea
-                className="textarea"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={placeholders[activeTab]}
-                disabled={loading}
-              />
-            </div>
+            {activeTab === 'img2img' && renderImageToImageUI()}
+
+            <textarea
+              className="textarea"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={placeholders[activeTab]}
+              disabled={loading}
+            />
 
             <button
               onClick={handleSubmit}
@@ -675,12 +938,12 @@ const Home = () => {
               {loading ? (
                 <>
                   <Loader2 size={18} className="spinner" />
-                  Generating...
+                  {activeTab === 'img2img' ? 'Transforming...' : 'Generating...'}
                 </>
               ) : (
                 <>
-                  <ChevronRight size={18} />
-                  Generate {tabs.find(t => t.id === activeTab)?.label}
+                  {activeTab === 'img2img' ? <Palette size={18} /> : <ChevronRight size={18} />}
+                  {activeTab === 'img2img' ? 'Transform to Art' : `Generate ${tabs.find(t => t.id === activeTab)?.label}`}
                 </>
               )}
             </button>

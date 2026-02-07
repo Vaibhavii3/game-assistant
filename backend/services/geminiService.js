@@ -372,8 +372,9 @@ exports.generateImage = async (prompt, options = {}) => {
   }
 };
 
-//Updated Image-to-Image with better error handling
-exports.generateImageFromImage = async (sourceImageUrl, prompt, options = {}) => {
+// Sketch → Professional Game Art
+
+exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {}) => {
   try {
     const HF_KEY = process.env.HUGGINGFACE_API_KEY;
 
@@ -381,16 +382,151 @@ exports.generateImageFromImage = async (sourceImageUrl, prompt, options = {}) =>
       throw new Error('HUGGINGFACE_API_KEY not found in .env file');
     }
 
+    const {
+      width = 1024,
+      height = 1024,
+      model = 'img2img',
+      strength = 0.75, // How much to transform (0.5-0.9 recommended)
+      seed = Math.floor(Math.random() * 1000000),
+      artStyle = '2d' // '2d', '3d', 'realistic', 'anime', 'pixel'
+    } = options;
+
+    console.log('🎨 Converting image with Hugging Face...');
+    console.log('📝 Prompt:', prompt);
+    console.log('🎭 Style:', artStyle);
+
     const hf = new HfInference(HF_KEY);
-    
-    // For now, use text-to-image with enhanced prompt
-    const enhancedPrompt = `${prompt}, in the style of the reference image`;
-    
-    console.log('⚠️ Using text-to-image mode for image-to-image (limited support)');
-    return await exports.generateImage(enhancedPrompt, options);
+
+    // Style-specific prompt enhancement
+    const styleEnhancers = {
+      '2d': 'professional 2D game art, hand-painted style, vibrant colors, detailed illustration',
+      '3d': '3D rendered game asset, realistic lighting, detailed textures, game-ready model',
+      'realistic': 'photorealistic game graphics, high detail, professional rendering',
+      'anime': 'anime game art style, cel-shaded, vibrant colors, clean linework',
+      'pixel': 'pixel art game sprite, retro gaming style, clean pixels, vibrant palette',
+      'character': 'game character concept art, detailed design, professional quality',
+      'scene': 'game environment art, atmospheric, detailed background',
+      'item': 'game item icon, polished, professional UI asset'
+    };
+
+    const enhancedPrompt = `${prompt}, ${styleEnhancers[artStyle] || styleEnhancers['2d']}, high quality, game asset`;
+
+    // Best models for image-to-image
+    const modelMapping = {
+      'img2img': 'timbrooks/instruct-pix2pix',           // Best for transformations
+      'sketch2art': 'timbrooks/instruct-pix2pix',        // Sketch to art
+      'realistic': 'stabilityai/stable-diffusion-xl-refiner-1.0',
+      'enhance': 'stabilityai/stable-diffusion-xl-refiner-1.0'
+    };
+
+    const selectedModel = modelMapping[model] || modelMapping['img2img'];
+    console.log('🤖 Using model:', selectedModel);
+
+    try {
+      // Convert base64 to blob if needed
+      let imageBlob;
+      if (sourceImageBase64.startsWith('data:image')) {
+        // Extract base64 data
+        const base64Data = sourceImageBase64.split(',')[1];
+        const binaryData = Buffer.from(base64Data, 'base64');
+        imageBlob = new Blob([binaryData]);
+      } else {
+        // Assume it's already binary data
+        imageBlob = new Blob([Buffer.from(sourceImageBase64, 'base64')]);
+      }
+
+      // Generate image with timeout
+      const blob = await Promise.race([
+        hf.imageToImage({
+          model: selectedModel,
+          inputs: imageBlob,
+          parameters: {
+            prompt: enhancedPrompt,
+            negative_prompt: 'blurry, low quality, distorted, ugly, bad anatomy, amateur',
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+            image_guidance_scale: 1.5,
+            strength: strength // How much to change from original
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Image generation timeout')), 90000)
+        )
+      ]);
+
+      // Convert blob to base64
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Image = buffer.toString('base64');
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+
+      console.log('✅ Image transformed successfully!');
+
+      return {
+        imageUrl,
+        prompt: enhancedPrompt,
+        originalPrompt: prompt,
+        model: selectedModel,
+        seed,
+        width,
+        height,
+        artStyle,
+        strength,
+        source: 'huggingface',
+        format: 'base64',
+        transformationType: 'image-to-image'
+      };
+
+    } catch (apiError) {
+      console.error('❌ HF API Error:', apiError);
+      
+      // Fallback: Use text-to-image with detailed description
+      console.log('⚠️ Falling back to text-to-image with enhanced prompt...');
+      
+      const fallbackPrompt = `${enhancedPrompt}, based on a sketch, professional game asset quality`;
+      
+      return await exports.generateImage(fallbackPrompt, {
+        width,
+        height,
+        model: 'flux',
+        seed
+      });
+    }
 
   } catch (error) {
     console.error('❌ Image-to-image error:', error.message);
     throw error;
   }
+};
+
+// ============ GAME-SPECIFIC IMAGE PROMPTS ============
+
+exports.createGameAssetPrompt = (type, userDescription, style = '2d') => {
+  const templates = {
+    character: {
+      '2d': `${userDescription}, professional 2D game character art, detailed sprite design, vibrant colors, clean outlines, character sheet style, front view, game-ready asset`,
+      '3d': `${userDescription}, 3D game character model, detailed textures, professional rendering, T-pose reference, game-ready 3D asset`,
+      'anime': `${userDescription}, anime game character art, cel-shaded style, vibrant colors, dynamic pose, detailed facial features`,
+      'pixel': `${userDescription}, pixel art character sprite, retro game style, 16-bit quality, clean pixels, vibrant palette`
+    },
+    
+    scene: {
+      '2d': `${userDescription}, 2D game environment art, isometric or side-view, detailed background, atmospheric lighting, game level design`,
+      '3d': `${userDescription}, 3D game environment, realistic lighting, detailed textures, cinematic composition, game-ready scene`,
+      'realistic': `${userDescription}, photorealistic game environment, high detail rendering, professional quality, cinematic lighting`
+    },
+    
+    item: {
+      '2d': `${userDescription}, game item icon, 2D illustration, detailed design, clean background, UI-ready asset, professional quality`,
+      '3d': `${userDescription}, 3D game item render, detailed model, professional lighting, transparent background, inventory icon style`,
+      'pixel': `${userDescription}, pixel art item icon, retro game style, clean design, vibrant colors, transparent background`
+    },
+    
+    enemy: {
+      '2d': `${userDescription}, 2D game enemy design, menacing appearance, detailed sprite art, game-ready monster, professional illustration`,
+      '3d': `${userDescription}, 3D game enemy model, detailed creature design, intimidating pose, professional rendering, game-ready asset`
+    }
+  };
+
+  return templates[type]?.[style] || `${userDescription}, professional game art, high quality, detailed, game-ready asset`;
 };
