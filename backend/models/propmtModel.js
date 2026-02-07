@@ -15,7 +15,7 @@ const gameContentSchema = new mongoose.Schema({
   type: { 
     type: String, 
     required: true,
-    enum: ['character', 'quest', 'dialogue', 'enemy', 'item', 'world', 'story', 'general'],
+    enum: ['character', 'quest', 'dialogue', 'enemy', 'item', 'world', 'story', 'general', 'image'],
     index: true
   },
   
@@ -52,6 +52,10 @@ const gameContentSchema = new mongoose.Schema({
     
     // For story
     chapter: String,
+    imageModel: String,
+    dimensions: String,
+    seed: Number,
+    sourceImage: String,
     
     // Validation status
     validated: {

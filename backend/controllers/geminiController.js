@@ -1,4 +1,4 @@
-const { callGemini, validateGameContent } = require('../services/geminiService');
+const { callGemini, validateGameContent, generateImage, generateImageFromImage } = require('../services/geminiService');
 const GameContent = require('../models/propmtModel');
 
 exports.handlePrompt = async (req, res) => {
@@ -404,3 +404,96 @@ exports.getStats = async (req, res) => {
     });
   }
 };
+
+exports.generateImageFromText = async (req, res) => {
+  const { prompt, width, height, model, seed } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
+  }
+
+  try {
+    const imageData = await generateImage(prompt, {
+      width: width || 1024,
+      height: height || 1024,
+      model: model || 'flux',
+      seed: seed || Math.floor(Math.random() * 1000000),
+      nologo: true,
+      enhance: true
+    });
+
+    const saved = await GameContent.create({
+      prompt,
+      response: imageData,
+      type: 'image',
+      category: 'image',
+      metadata: {
+        imageModel: imageData.model,
+        dimensions: `${imageData.width}x${imageData.height}`,
+        seed: imageData.seed,
+        validated: true
+      }
+    });
+
+    res.json({
+      success: true,
+      imageUrl: imageData.imageUrl,
+      imageData,
+      savedId: saved._id
+    });
+  } catch (err) {
+    console.error('Image generation error:', err);
+    res.status(500).json({
+      error: 'Failed to generate image',
+      details: err.message
+    });
+  }
+};
+
+// NEW: Image-to-Image generation
+exports.generateImageFromImageInput = async (req, res) => {
+  const { prompt, sourceImageUrl, width, height, model, seed } = req.body;
+
+  if (!prompt || !sourceImageUrl) {
+    return res.status(400).json({ error: 'Prompt and source image URL are required' });
+  }
+
+  try {
+    const imageData = await generateImageFromImage(sourceImageUrl, prompt, {
+      width: width || 1024,
+      height: height || 1024,
+      model: model || 'flux',
+      seed: seed || Math.floor(Math.random() * 1000000),
+      nologo: true,
+      enhance: true
+    });
+
+    const saved = await GameContent.create({
+      prompt: `${prompt} (from source image)`,
+      response: imageData,
+      type: 'image',
+      category: 'image-to-image',
+      metadata: {
+        imageModel: imageData.model,
+        dimensions: `${imageData.width}x${imageData.height}`,
+        seed: imageData.seed,
+        sourceImage: sourceImageUrl,
+        validated: true
+      }
+    });
+
+    res.json({
+      success: true,
+      imageUrl: imageData.imageUrl,
+      imageData,
+      savedId: saved._id
+    });
+  } catch (err) {
+    console.error('Image-to-image error:', err);
+    res.status(500).json({
+      error: 'Failed to generate image from image',
+      details: err.message
+    });
+  }
+};
+

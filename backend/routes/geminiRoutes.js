@@ -18,6 +18,10 @@ router.post('/item', geminiController.generateItem);
 
 router.post('/story', geminiController.generateStory);
 
+router.post('/image', geminiController.generateImageFromText);
+
+router.post('/image-to-image', geminiController.generateImageFromImageInput);
+
 // ============ CONTENT MANAGEMENT ROUTES ============
 
 router.get('/content', geminiController.getSavedContent);

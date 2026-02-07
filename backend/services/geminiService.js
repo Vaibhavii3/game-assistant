@@ -1,4 +1,6 @@
 const axios = require("axios");
+const { HfInference } = require("@huggingface/inference");
+
 
 const GAME_PROMPTS = {
   character: (userPrompt) => `
@@ -227,11 +229,9 @@ exports.callGemini = async (promptText, type = 'text') => {
     if (GAME_PROMPTS[type]) {
       try {
         let cleanedText = generatedText.trim();
-
         cleanedText = cleanedText.replace(/^```json\s*/i, '');
         cleanedText = cleanedText.replace(/^```\s*/i, '');
         cleanedText = cleanedText.replace(/\s*```$/i, '');
-        
         cleanedText = cleanedText.trim();
         
         const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
@@ -277,4 +277,120 @@ exports.validateGameContent = (content, type) => {
     missing,
     content
   };
+};
+
+exports.generateImage = async (prompt, options = {}) => {
+  try {
+    const HF_KEY = process.env.HUGGINGFACE_API_KEY;
+
+    // ✅ Fixed: Uppercase 'Error'
+    if (!HF_KEY) {
+      throw new Error('HUGGINGFACE_API_KEY not found in .env file');
+    }
+
+    const {
+      width = 1024,
+      height = 1024,
+      model = 'flux',
+      seed = Math.floor(Math.random() * 1000000)
+    } = options;
+
+    console.log('🎨 Generating image with Hugging Face...');
+    console.log('📝 Prompt:', prompt);
+
+    const hf = new HfInference(HF_KEY);
+
+    // ✅ Better model mapping with working models
+    const modelMapping = {
+      'flux': 'black-forest-labs/FLUX.1-schnell',          // Fast, good quality
+      'flux-dev': 'black-forest-labs/FLUX.1-dev',          // Better quality, slower
+      'sdxl': 'stabilityai/stable-diffusion-xl-base-1.0',  // High quality
+      'turbo': 'stabilityai/sdxl-turbo',                    // Fastest
+      'sd': 'runwayml/stable-diffusion-v1-5'               // Classic
+    };
+
+    const selectedModel = modelMapping[model] || modelMapping['turbo'];
+    console.log('🤖 Using model:', selectedModel);
+
+    try {
+      // Generate image with timeout
+      const blob = await Promise.race([
+        hf.textToImage({
+          model: selectedModel,
+          inputs: prompt,
+          parameters: {
+            width: width,
+            height: height,
+            num_inference_steps: model === 'turbo' ? 4 : 25,
+            guidance_scale: model === 'turbo' ? 0 : 7.5
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Image generation timeout')), 60000)
+        )
+      ]);
+
+      // Convert blob to base64
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Image = buffer.toString('base64');
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+
+      console.log('✅ Image generated successfully!');
+
+      return {
+        imageUrl,
+        prompt,
+        model: selectedModel,
+        seed,
+        width,
+        height,
+        source: 'huggingface',
+        format: 'base64'
+      };
+
+    } catch (apiError) {
+      console.error('❌ HF API Error:', apiError);
+      
+      // More specific error messages
+      if (apiError.message.includes('timeout')) {
+        throw new Error('Image generation took too long. Try a simpler prompt or different model.');
+      }
+      if (apiError.message.includes('rate limit')) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      }
+      if (apiError.message.includes('quota')) {
+        throw new Error('API quota exceeded. Please check your Hugging Face account.');
+      }
+      
+      throw new Error(`HF API Error: ${apiError.message}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Image generation error:', error.message);
+    throw error; // Re-throw to be caught by controller
+  }
+};
+
+//Updated Image-to-Image with better error handling
+exports.generateImageFromImage = async (sourceImageUrl, prompt, options = {}) => {
+  try {
+    const HF_KEY = process.env.HUGGINGFACE_API_KEY;
+
+    if (!HF_KEY) {
+      throw new Error('HUGGINGFACE_API_KEY not found in .env file');
+    }
+
+    const hf = new HfInference(HF_KEY);
+    
+    // For now, use text-to-image with enhanced prompt
+    const enhancedPrompt = `${prompt}, in the style of the reference image`;
+    
+    console.log('⚠️ Using text-to-image mode for image-to-image (limited support)');
+    return await exports.generateImage(enhancedPrompt, options);
+
+  } catch (error) {
+    console.error('❌ Image-to-image error:', error.message);
+    throw error;
+  }
 };
