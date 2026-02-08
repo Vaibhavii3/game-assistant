@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   User, MessageCircle, Sword, Shield, MapPin, Scroll, BookOpen, Image,
-  Send, Copy, Download, Loader2, ChevronRight, Upload, RefreshCw, Palette,
+  Copy, Download, Loader2, ChevronRight, Upload, RefreshCw, Palette,
   Sparkles
 } from 'lucide-react';
 
