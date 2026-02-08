@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   User, MessageCircle, Sword, Shield, MapPin, Scroll, BookOpen, Image,
-  Send, Copy, Download, Loader2, ChevronRight, Upload, RefreshCw, Palette
+  Send, Copy, Download, Loader2, ChevronRight, Upload, RefreshCw, Palette,
+  Sparkles
 } from 'lucide-react';
 
 const Home = () => {
@@ -40,7 +41,7 @@ const Home = () => {
     item: "Create a trident of the depths...",
     story: "Write a dramatic ocean voyage...",
     image: "A mystical character portrait, digital art style...",
-    img2img: "Convert this sketch into a professional 2D game character with detailed armor..."
+    img2img: "Optional: Add custom transformation instructions (or leave empty to auto-generate based on your selections)"
   };
 
   const apiEndpoints = {
@@ -143,14 +144,16 @@ const Home = () => {
   };
 
   const handleSubmit = async () => {
-    if (!prompt.trim()) {
+    // ✅ Image-to-Image: Only sourceImage is required, prompt is optional
+    if (activeTab === 'img2img') {
+      if (!sourceImage) {
+        setError('Please upload a source image');
+        return;
+      }
+      // Prompt is optional for img2img - clear error if only prompt is missing
+      setError('');
+    } else if (!prompt.trim()) {
       setError('Please enter a prompt');
-      return;
-    }
-
-    // Image-to-Image specific validation
-    if (activeTab === 'img2img' && !sourceImage) {
-      setError('Please upload a source image (sketch or reference)');
       return;
     }
 
@@ -166,8 +169,8 @@ const Home = () => {
 
       if (activeTab === 'img2img') {
         requestBody = {
-          prompt,
           sourceImage,
+          prompt: prompt.trim() || undefined, // ✅ Send undefined if empty
           artStyle,
           assetType,
           strength,
@@ -209,7 +212,9 @@ const Home = () => {
           type: 'image',
           url: data.imageUrl || data.url,
           raw: data,
-          metadata: data.imageData
+          metadata: data.imageData,
+          usedAutoPrompt: data.imageData?.usedAutoPrompt,
+          enhancedPrompt: data.imageData?.enhancedPrompt
         });
       } else {
         const formattedContent = formatContent(data, activeTab);
@@ -264,8 +269,9 @@ const Home = () => {
             ) : (
               <div className="upload-placeholder">
                 <Upload size={48} />
-                <h3>Upload Your Sketch</h3>
+                <h3>Upload Your Sketch or Image</h3>
                 <p>Click to upload an image (PNG, JPG)</p>
+                <p className="hint">✨ We'll transform it based on your selections below</p>
               </div>
             )}
           </label>
@@ -274,7 +280,9 @@ const Home = () => {
 
       <div className="settings-grid">
         <div className="setting-group">
-          <label className="setting-label">Asset Type</label>
+          <label className="setting-label">
+            <Sparkles size={16} /> Asset Type
+          </label>
           <div className="asset-type-grid">
             {assetTypes.map((type) => (
               <button
@@ -290,7 +298,9 @@ const Home = () => {
         </div>
 
         <div className="setting-group">
-          <label className="setting-label">Art Style</label>
+          <label className="setting-label">
+            <Palette size={16} /> Art Style
+          </label>
           <div className="style-select-grid">
             {artStyles.map((style) => (
               <button
@@ -324,6 +334,12 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {sourceImage && (
+        <div className="auto-prompt-info">
+          <p>💡 <strong>Tip:</strong> Leave prompt empty to auto-generate based on your Asset Type and Art Style selections!</p>
+        </div>
+      )}
     </div>
   );
 
@@ -347,10 +363,17 @@ const Home = () => {
             </div>
           </div>
 
+          {response.usedAutoPrompt && (
+            <div className="auto-prompt-badge">
+              <Sparkles size={14} />
+              <span>Auto-generated prompt: {response.enhancedPrompt}</span>
+            </div>
+          )}
+
           {activeTab === 'img2img' && sourceImagePreview && (
             <div className="comparison-grid">
               <div className="comparison-item">
-                <h4>Original Sketch</h4>
+                <h4>Original Image</h4>
                 <img src={sourceImagePreview} alt="Original" className="comparison-img" />
               </div>
               <div className="comparison-arrow">→</div>
@@ -372,6 +395,9 @@ const Home = () => {
               <p><strong>Style:</strong> {response.metadata.artStyle || 'Default'}</p>
               <p><strong>Model:</strong> {response.metadata.model}</p>
               <p><strong>Dimensions:</strong> {response.metadata.width}x{response.metadata.height}</p>
+              {response.metadata.strength && (
+                <p><strong>Strength:</strong> {(response.metadata.strength * 100).toFixed(0)}%</p>
+              )}
             </div>
           )}
         </div>
@@ -585,6 +611,13 @@ const Home = () => {
           font-size: 0.9rem;
         }
 
+        .upload-placeholder .hint {
+          margin-top: 12px;
+          font-size: 0.85rem;
+          color: #92400e;
+          font-weight: 500;
+        }
+
         .settings-grid {
           display: flex;
           flex-direction: column;
@@ -601,6 +634,9 @@ const Home = () => {
           font-weight: 600;
           color: #2d3748;
           font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .asset-type-grid {
@@ -697,6 +733,33 @@ const Home = () => {
           justify-content: space-between;
           font-size: 0.75rem;
           color: #a89880;
+        }
+
+        .auto-prompt-info {
+          background: #fff8e1;
+          border-left: 3px solid #ffa000;
+          padding: 14px 18px;
+          border-radius: 6px;
+          margin-top: 16px;
+        }
+
+        .auto-prompt-info p {
+          font-size: 0.9rem;
+          color: #b35900;
+          margin: 0;
+        }
+
+        .auto-prompt-badge {
+          background: #e3f2fd;
+          border-left: 3px solid #2196f3;
+          padding: 12px 16px;
+          border-radius: 6px;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.85rem;
+          color: #1565c0;
         }
 
         .submit-btn {
