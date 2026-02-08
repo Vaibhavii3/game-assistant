@@ -20,6 +20,8 @@ const Home = () => {
   const [assetType, setAssetType] = useState('character');
   const [strength, setStrength] = useState(0.75);
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
+  
   const tabs = [
     { id: 'character', label: 'Character', icon: User },
     { id: 'quest', label: 'Quest', icon: Scroll },
@@ -45,16 +47,16 @@ const Home = () => {
   };
 
   const apiEndpoints = {
-    character: 'http://localhost:5000/api/gemini/character',
-    quest: 'http://localhost:5000/api/gemini/quest',
-    dialogue: 'http://localhost:5000/api/gemini/dialogue',
-    world: 'http://localhost:5000/api/gemini/world',
-    enemy: 'http://localhost:5000/api/gemini/enemy',
-    item: 'http://localhost:5000/api/gemini/item',
-    story: 'http://localhost:5000/api/gemini/story',
-    image: 'http://localhost:5000/api/gemini/image',
-    img2img: 'http://localhost:5000/api/gemini/image-to-image'
-  };
+  character: `${API_BASE_URL}/api/gemini/character`,
+  quest: `${API_BASE_URL}/api/gemini/quest`,
+  dialogue: `${API_BASE_URL}/api/gemini/dialogue`,
+  world: `${API_BASE_URL}/api/gemini/world`,
+  enemy: `${API_BASE_URL}/api/gemini/enemy`,
+  item: `${API_BASE_URL}/api/gemini/item`,
+  story: `${API_BASE_URL}/api/gemini/story`,
+  image: `${API_BASE_URL}/api/gemini/image`,
+  img2img: `${API_BASE_URL}/api/gemini/image-to-image`
+};
 
   const artStyles = [
     { value: '2d', label: '2D Game Art', desc: 'Hand-painted style' },
