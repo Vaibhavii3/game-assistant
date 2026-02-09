@@ -450,17 +450,6 @@ exports.generateImageFromText = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
 exports.generateImageFromImageInput = async (req, res) => {
   try {
     const { prompt, sourceImage, width, height, model, strength, artStyle, seed, assetType } = req.body;
