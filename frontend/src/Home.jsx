@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   User, MessageCircle, Sword, Shield, MapPin, Scroll, BookOpen, Image,
   Copy, Download, Loader2, ChevronRight, Upload, RefreshCw, Palette,
-  Sparkles
+  Sparkles, Layers
 } from 'lucide-react';
 
 const Home = () => {
@@ -93,6 +93,14 @@ const Home = () => {
     };
     reader.readAsDataURL(file);
     setError('');
+  };
+
+  // Navigate to Batch Generation page
+  const navigateToBatchGen = () => {
+    // If using React Router, use navigate
+    window.location.href = '/batch';
+    // OR if you're passing a navigation function as prop:
+    // props.onNavigate('batch');
   };
 
   // Format content (existing function)
@@ -460,18 +468,52 @@ const Home = () => {
           background: linear-gradient(135deg, #2c5f7f 0%, #1e3a5f 100%);
           padding: 40px 32px;
           border-bottom: 3px solid #92400e;
+          position: relative;
         }
 
-        .header h1 {
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .header-text h1 {
           font-size: 2rem;
           font-weight: 300;
           color: #fdfcfa;
           margin-bottom: 8px;
         }
 
-        .header p {
+        .header-text p {
           font-size: 0.95rem;
           color: rgba(253, 252, 250, 0.8);
+        }
+
+        .batch-nav-btn {
+          background: rgba(253, 252, 250, 0.15);
+          border: 2px solid rgba(253, 252, 250, 0.3);
+          color: #fdfcfa;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          backdrop-filter: blur(10px);
+        }
+
+        .batch-nav-btn:hover {
+          background: rgba(253, 252, 250, 0.25);
+          border-color: rgba(253, 252, 250, 0.5);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .batch-nav-btn:active {
+          transform: translateY(0);
         }
 
         .tabs {
@@ -939,6 +981,17 @@ const Home = () => {
         }
 
         @media (max-width: 768px) {
+          .header-content {
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+          }
+
+          .batch-nav-btn {
+            width: 100%;
+            justify-content: center;
+          }
+
           .comparison-grid {
             grid-template-columns: 1fr;
           }
@@ -957,8 +1010,16 @@ const Home = () => {
 
       <div className="container">
         <div className="header">
-          <h1>MythiCraft Engine</h1>
-          <p>AI-Powered Game Development Assistant</p>
+          <div className="header-content">
+            <div className="header-text">
+              <h1>MythiCraft Engine</h1>
+              <p>AI-Powered Game Development Assistant</p>
+            </div>
+            <button className="batch-nav-btn" onClick={navigateToBatchGen}>
+              <Layers size={18} />
+              Batch Generation
+            </button>
+          </div>
         </div>
 
         <div className="tabs">
