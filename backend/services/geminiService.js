@@ -7,7 +7,9 @@ const GAME_PROMPTS = {
   character: (userPrompt) => `
 You are a professional game designer. Create a detailed game character based on this request: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "name": "Character name",
   "class": "Character class/type",
@@ -16,34 +18,34 @@ Return a JSON object with this EXACT structure:
   "abilities": ["ability1", "ability2", "ability3"],
   "stats": {
     "health": 100,
-    "strength": 0-100,
-    "intelligence": 0-100,
-    "agility": 0-100,
-    "charisma": 0-100
+    "strength": 75,
+    "intelligence": 80,
+    "agility": 70,
+    "charisma": 65
   },
   "equipment": ["item1", "item2"],
   "weaknesses": "Character weaknesses",
   "motivation": "What drives this character"
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`,
+}`,
 
   quest: (userPrompt) => `
 You are a professional quest designer. Create an engaging game quest based on: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "title": "Quest name",
-  "type": "main/side/daily",
-  "difficulty": "easy/medium/hard/expert",
+  "type": "main",
+  "difficulty": "medium",
   "description": "Engaging quest description",
   "objectives": [
     {"task": "objective 1", "completed": false},
     {"task": "objective 2", "completed": false}
   ],
   "rewards": {
-    "experience": 100-1000,
-    "gold": 50-500,
+    "experience": 500,
+    "gold": 250,
     "items": ["reward item 1", "reward item 2"]
   },
   "npc": {
@@ -53,18 +55,18 @@ Return a JSON object with this EXACT structure:
   },
   "story": "Deeper narrative context",
   "tips": ["hint 1", "hint 2"]
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`,
+}`,
 
   dialogue: (userPrompt) => `
 You are a professional game writer. Create natural NPC dialogue for: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "npcName": "NPC name",
   "npcRole": "Role/occupation",
-  "mood": "happy/sad/angry/neutral/mysterious",
+  "mood": "friendly",
   "location": "Where this dialogue happens",
   "dialogueOptions": [
     {
@@ -77,17 +79,17 @@ Return a JSON object with this EXACT structure:
   ],
   "questHint": "Optional quest hint if relevant",
   "personality": "NPC personality description"
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`,
+}`,
 
   worldBuilding: (userPrompt) => `
 You are a professional world builder. Create a detailed game world/location based on: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "name": "Location name",
-  "type": "city/dungeon/forest/mountain/island/etc",
+  "type": "city",
   "description": "Vivid 3-4 sentence description",
   "atmosphere": "The feeling/mood of this place",
   "inhabitants": ["race/creature 1", "race/creature 2"],
@@ -99,27 +101,27 @@ Return a JSON object with this EXACT structure:
   "lore": "Historical background",
   "climate": "Weather and environment",
   "economy": "What drives this place"
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`,
+}`,
 
   enemy: (userPrompt) => `
 You are a professional game designer. Create a balanced game enemy based on: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "name": "Enemy name",
-  "type": "beast/humanoid/undead/demon/etc",
-  "level": 1-100,
+  "type": "beast",
+  "level": 10,
   "description": "Visual and behavioral description",
   "stats": {
-    "health": 50-5000,
-    "attack": 10-200,
-    "defense": 5-150,
-    "speed": 5-100
+    "health": 500,
+    "attack": 75,
+    "defense": 50,
+    "speed": 60
   },
   "abilities": [
-    {"name": "ability 1", "damage": "number", "cooldown": "seconds"}
+    {"name": "ability 1", "damage": 50, "cooldown": 5}
   ],
   "weaknesses": ["weakness 1", "weakness 2"],
   "resistances": ["resistance 1"],
@@ -130,45 +132,45 @@ Return a JSON object with this EXACT structure:
   },
   "behavior": "How it fights",
   "location": "Where it's found"
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`,
+}`,
 
   item: (userPrompt) => `
 You are a professional item designer. Create a game item based on: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "name": "Item name",
-  "type": "weapon/armor/consumable/quest/accessory",
-  "rarity": "common/uncommon/rare/epic/legendary",
+  "type": "weapon",
+  "rarity": "rare",
   "description": "Flavor text description",
   "stats": {
-    "damage": "if weapon",
-    "defense": "if armor",
-    "bonus": "any stat bonuses"
+    "damage": 75,
+    "defense": 0,
+    "bonus": "+10 Strength"
   },
   "effects": ["effect 1", "effect 2"],
   "requirements": {
-    "level": "required level",
-    "class": "required class if any"
+    "level": 10,
+    "class": "any"
   },
-  "value": "gold value",
-  "weight": "item weight",
-  "durability": "if applicable",
+  "value": 500,
+  "weight": 5,
+  "durability": 100,
   "lore": "Item backstory",
   "obtainedFrom": "How to get this item"
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`,
+}`,
 
   storyBeat: (userPrompt) => `
 You are a professional narrative designer. Create a story moment based on: "${userPrompt}"
 
-Return a JSON object with this EXACT structure:
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+
+Return this EXACT structure:
 {
   "title": "Story beat title",
-  "chapter": "Which part of game",
+  "chapter": "Chapter 1",
   "setting": "Where this happens",
   "characters": ["character 1", "character 2"],
   "conflict": "The main tension/problem",
@@ -180,15 +182,78 @@ Return a JSON object with this EXACT structure:
       "emotionalImpact": "How it affects story"
     }
   ],
-  "mood": "Tone of this moment",
+  "mood": "tense",
   "foreshadowing": "Hints about future events"
-}
-
-Return ONLY the JSON object, no markdown code blocks or extra text.`
+}`
 };
 
 // ============================================
-// ✅ GROQ API - FREE & WORKS IN INDIA! 🇮🇳
+// IMPROVED JSON PARSER
+// ============================================
+const parseJSONResponse = (text, type) => {
+  try {
+    let cleanedText = text.trim();
+    
+    console.log('🔍 Parsing response...');
+    console.log('📝 Original length:', text.length);
+    
+    // Remove markdown code blocks
+    cleanedText = cleanedText.replace(/^```json\s*/i, '');
+    cleanedText = cleanedText.replace(/^```\s*/i, '');
+    cleanedText = cleanedText.replace(/\s*```$/i, '');
+    cleanedText = cleanedText.trim();
+    
+    // Remove any text before the first { or [
+    const jsonStart = cleanedText.search(/[\{\[]/);
+    if (jsonStart > 0) {
+      cleanedText = cleanedText.substring(jsonStart);
+    }
+    
+    // Remove any text after the last } or ]
+    const jsonEnd = Math.max(
+      cleanedText.lastIndexOf('}'),
+      cleanedText.lastIndexOf(']')
+    );
+    if (jsonEnd > -1 && jsonEnd < cleanedText.length - 1) {
+      cleanedText = cleanedText.substring(0, jsonEnd + 1);
+    }
+    
+    console.log('✂️ Cleaned text length:', cleanedText.length);
+    
+    // Try to parse
+    const parsed = JSON.parse(cleanedText);
+    console.log('✅ Successfully parsed JSON');
+    return parsed;
+
+  } catch (parseError) {
+    console.warn('⚠️ JSON parse failed:', parseError.message);
+    console.log('📄 Problematic text:', text.substring(0, 200));
+    
+    // Try to extract JSON object using regex
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const extracted = JSON.parse(jsonMatch[0]);
+        console.log('✅ Extracted JSON using regex');
+        return extracted;
+      }
+    } catch (regexError) {
+      console.warn('⚠️ Regex extraction also failed');
+    }
+    
+    // Last resort: return error object
+    return {
+      rawText: text,
+      error: 'Could not parse as JSON',
+      parseError: parseError.message,
+      note: 'AI returned non-JSON response',
+      type: type
+    };
+  }
+};
+
+// ============================================
+// ✅ GROQ API - FREE & WORKS EVERYWHERE! 
 // ============================================
 exports.callGemini = async (promptText, type = 'text') => {
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -211,6 +276,10 @@ exports.callGemini = async (promptText, type = 'text') => {
       {
         model: 'llama-3.3-70b-versatile', // FREE model - very good quality!
         messages: [
+          {
+            role: 'system',
+            content: 'You are a professional game content generator. Always return valid JSON objects without markdown code blocks or extra text. Never include ```json or ``` in your response.'
+          },
           {
             role: 'user',
             content: enhancedPrompt
@@ -236,36 +305,21 @@ exports.callGemini = async (promptText, type = 'text') => {
 
     // Parse JSON if structured content
     if (GAME_PROMPTS[type]) {
-      try {
-        let cleanedText = generatedText.trim();
-        
-        // Remove markdown code blocks
-        cleanedText = cleanedText.replace(/^```json\s*/i, '');
-        cleanedText = cleanedText.replace(/^```\s*/i, '');
-        cleanedText = cleanedText.replace(/\s*```$/i, '');
-        cleanedText = cleanedText.trim();
-        
-        // Extract JSON object
-        const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          cleanedText = jsonMatch[0];
+      return parseJSONResponse(generatedText, type);
+    }
+    
+    // For text type, try to parse as JSON, but return text if not
+    if (type === 'text') {
+      const trimmed = generatedText.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          return parseJSONResponse(generatedText, type);
+        } catch (e) {
+          return generatedText;
         }
-
-        const parsed = JSON.parse(cleanedText);
-        
-        console.log('✅ Successfully parsed JSON');
-        return parsed;
-
-      } catch (parseError) {
-        console.warn('⚠️ Could not parse JSON, returning raw text');
-        
-        return {
-          rawText: generatedText,
-          error: 'Could not parse as JSON',
-          note: 'Displaying raw content - AI may have generated text instead of JSON',
-          type: type
-        };
       }
+      return generatedText;
     }
     
     return generatedText;
@@ -298,6 +352,16 @@ exports.callGemini = async (promptText, type = 'text') => {
 // VALIDATION FUNCTION
 // ============================================
 exports.validateGameContent = (content, type) => {
+  // Handle error objects
+  if (content && content.error) {
+    return {
+      isValid: false,
+      missing: ['All fields (parse error)'],
+      content,
+      error: content.error
+    };
+  }
+
   const validations = {
     character: ['name', 'class', 'backstory'],
     quest: ['title', 'description', 'objectives'],
@@ -338,6 +402,7 @@ exports.generateImage = async (prompt, options = {}) => {
     } = options;
 
     console.log('🎨 Generating image with Hugging Face...');
+    console.log('📊 Parameters:', { width, height, model, seed });
 
     const hf = new HfInference(HF_KEY);
 
@@ -348,6 +413,7 @@ exports.generateImage = async (prompt, options = {}) => {
     };
 
     const selectedModel = modelMapping[model] || modelMapping['turbo'];
+    console.log('🤖 Using model:', selectedModel);
 
     const blob = await Promise.race([
       hf.textToImage({
@@ -370,7 +436,7 @@ exports.generateImage = async (prompt, options = {}) => {
     const base64Image = buffer.toString('base64');
     const imageUrl = `data:image/png;base64,${base64Image}`;
 
-    console.log('✅ Image generated!');
+    console.log('✅ Image generated successfully!');
 
     return {
       imageUrl,
@@ -384,11 +450,23 @@ exports.generateImage = async (prompt, options = {}) => {
     };
 
   } catch (error) {
-    console.error('❌ Image error:', error.message);
+    console.error('❌ Image generation error:', error.message);
+    
+    if (error.message === 'timeout') {
+      throw new Error('Image generation timed out. Model may be loading. Try again in 30-60 seconds.');
+    }
+    
+    if (error.response?.status === 503) {
+      throw new Error('Model is loading. Please wait 30-60 seconds and try again (cold start).');
+    }
+    
     throw new Error(`Image generation failed: ${error.message}`);
   }
 };
 
+// ============================================
+// IMAGE TO IMAGE - FIXED VERSION
+// ============================================
 exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {}) => {
   try {
     const HF_KEY = process.env.HUGGINGFACE_API_KEY;
@@ -405,37 +483,58 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
       artStyle = '2d'
     } = options;
 
+    console.log('🎨 Starting image-to-image transformation...');
+    console.log('📊 Parameters:', { width, height, strength, artStyle, seed });
+
     const hf = new HfInference(HF_KEY);
 
     const styleEnhancers = {
-      '2d': 'professional 2D game art, hand-painted style',
-      '3d': '3D rendered game asset, realistic lighting',
-      'anime': 'anime game art style, cel-shaded',
-      'pixel': 'pixel art game sprite, retro gaming',
-      'realistic': 'photorealistic game graphics'
+      '2d': 'professional 2D game art, hand-painted style, clean lines',
+      '3d': '3D rendered game asset, realistic lighting, detailed textures',
+      'anime': 'anime game art style, cel-shaded, vibrant colors',
+      'pixel': 'pixel art game sprite, retro gaming style, clear pixels',
+      'realistic': 'photorealistic game graphics, high detail, professional quality'
     };
 
-    const enhancedPrompt = `${prompt}, ${styleEnhancers[artStyle] || styleEnhancers['2d']}, high quality`;
+    const enhancedPrompt = `${prompt}, ${styleEnhancers[artStyle] || styleEnhancers['2d']}, high quality, professional game asset`;
+    console.log('✨ Enhanced prompt:', enhancedPrompt);
 
+    // Convert base64 to Blob
     let imageBlob;
-    if (sourceImageBase64.startsWith('data:image')) {
-      const base64Data = sourceImageBase64.split(',')[1];
+    try {
+      let base64Data = sourceImageBase64;
+      
+      // Handle data URL format
+      if (sourceImageBase64.includes('data:image')) {
+        base64Data = sourceImageBase64.split(',')[1];
+      }
+      
+      // Remove any whitespace
+      base64Data = base64Data.replace(/\s/g, '');
+      
       const binaryData = Buffer.from(base64Data, 'base64');
-      imageBlob = new Blob([binaryData]);
-    } else {
-      imageBlob = new Blob([Buffer.from(sourceImageBase64, 'base64')]);
+      imageBlob = new Blob([binaryData], { type: 'image/png' });
+      
+      console.log('✅ Image blob created:', imageBlob.size, 'bytes');
+    } catch (blobError) {
+      console.error('❌ Blob creation failed:', blobError);
+      throw new Error('Invalid image data format. Please provide valid base64 image.');
     }
 
+    // Try image-to-image first
     try {
+      console.log('🔄 Attempting image-to-image transformation...');
+      
       const blob = await Promise.race([
         hf.imageToImage({
           model: 'timbrooks/instruct-pix2pix',
           inputs: imageBlob,
           parameters: {
             prompt: enhancedPrompt,
-            negative_prompt: 'blurry, low quality',
-            num_inference_steps: 25,
+            negative_prompt: 'blurry, low quality, distorted, ugly, bad anatomy',
+            num_inference_steps: 30,
             guidance_scale: 7.5,
+            image_guidance_scale: 1.5,
             strength: strength
           }
         }),
@@ -449,6 +548,8 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
       const base64Image = buffer.toString('base64');
       const imageUrl = `data:image/png;base64,${base64Image}`;
 
+      console.log('✅ Image-to-image transformation successful!');
+
       return {
         imageUrl,
         prompt: enhancedPrompt,
@@ -461,43 +562,71 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
         strength,
         source: 'huggingface',
         format: 'base64',
-        transformationType: 'image-to-image'
+        transformationType: 'image-to-image',
+        success: true
       };
 
-    } catch (apiError) {
-      console.log('⚠️ Falling back to text-to-image...');
-      return await exports.generateImage(enhancedPrompt, { width, height, model: 'turbo', seed });
+    } catch (img2imgError) {
+      console.log('⚠️ Image-to-image failed, falling back to text-to-image...');
+      console.log('Error:', img2imgError.message);
+      
+      // Fallback to text-to-image
+      const fallbackResult = await exports.generateImage(enhancedPrompt, { 
+        width, 
+        height, 
+        model: 'turbo', 
+        seed 
+      });
+      
+      return {
+        ...fallbackResult,
+        artStyle,
+        strength,
+        transformationType: 'text-to-image-fallback',
+        fallbackReason: img2imgError.message,
+        note: 'Used text-to-image as fallback due to image-to-image limitations'
+      };
     }
 
   } catch (error) {
-    console.error('❌ Image-to-image error:', error.message);
-    throw error;
+    console.error('❌ Image-to-image transformation error:', error);
+    
+    if (error.message.includes('timeout')) {
+      throw new Error('Image transformation timed out. Model may be loading. Try again in 60 seconds.');
+    }
+    
+    if (error.message.includes('Invalid image')) {
+      throw new Error('Invalid source image. Please provide a valid base64 encoded image.');
+    }
+    
+    throw new Error(`Image transformation failed: ${error.message}`);
   }
 };
 
+// Helper function for creating game asset prompts
 exports.createGameAssetPrompt = (type, userDescription, style = '2d') => {
   const templates = {
     character: {
-      '2d': `${userDescription}, professional 2D game character art`,
-      '3d': `${userDescription}, 3D game character model`,
-      'anime': `${userDescription}, anime game character art`,
-      'pixel': `${userDescription}, pixel art character sprite`
+      '2d': `${userDescription}, professional 2D game character art, hand-painted style, detailed design`,
+      '3d': `${userDescription}, 3D game character model, realistic rendering, high quality`,
+      'anime': `${userDescription}, anime game character art, cel-shaded, vibrant colors`,
+      'pixel': `${userDescription}, pixel art character sprite, retro gaming style`
     },
     scene: {
-      '2d': `${userDescription}, 2D game environment art`,
-      '3d': `${userDescription}, 3D game environment`,
-      'realistic': `${userDescription}, photorealistic game environment`
+      '2d': `${userDescription}, 2D game environment art, detailed background`,
+      '3d': `${userDescription}, 3D game environment, realistic lighting`,
+      'realistic': `${userDescription}, photorealistic game environment, high detail`
     },
     item: {
-      '2d': `${userDescription}, game item icon`,
-      '3d': `${userDescription}, 3D game item render`,
-      'pixel': `${userDescription}, pixel art item icon`
+      '2d': `${userDescription}, game item icon, clean design, professional quality`,
+      '3d': `${userDescription}, 3D game item render, detailed textures`,
+      'pixel': `${userDescription}, pixel art item icon, retro gaming style`
     },
     enemy: {
-      '2d': `${userDescription}, 2D game enemy design`,
-      '3d': `${userDescription}, 3D game enemy model`
+      '2d': `${userDescription}, 2D game enemy design, menacing appearance`,
+      '3d': `${userDescription}, 3D game enemy model, detailed and intimidating`
     }
   };
 
-  return templates[type]?.[style] || `${userDescription}, professional game art`;
+  return templates[type]?.[style] || `${userDescription}, professional game art, high quality`;
 };

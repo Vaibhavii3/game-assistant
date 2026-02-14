@@ -134,7 +134,7 @@ exports.generateQuest = async (req, res) => {
       quest,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate quest');
@@ -176,7 +176,7 @@ exports.generateDialogue = async (req, res) => {
       dialogue,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate dialogue');
@@ -211,7 +211,7 @@ exports.generateWorld = async (req, res) => {
       success: true,
       world,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate world');
@@ -253,7 +253,7 @@ exports.generateEnemy = async (req, res) => {
       enemy,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate enemy');
@@ -295,7 +295,7 @@ exports.generateItem = async (req, res) => {
       item,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate item');
@@ -330,7 +330,7 @@ exports.generateStory = async (req, res) => {
       success: true,
       story,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate story');
@@ -338,7 +338,7 @@ exports.generateStory = async (req, res) => {
 };
 
 // ============================================
-// GENERAL PROMPT HANDLER
+// GENERAL PROMPT HANDLER - FIXED JSON PARSING
 // ============================================
 exports.handlePrompt = async (req, res) => {
   const { prompt, type } = req.body;
@@ -351,9 +351,30 @@ exports.handlePrompt = async (req, res) => {
     console.log('🎮 Processing general prompt...');
     const response = await callGemini(prompt, type || 'text');
     
+    // Ensure response is always an object
+    let processedResponse;
+    if (typeof response === 'string') {
+      // Try to parse if it looks like JSON
+      try {
+        const trimmed = response.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+            (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          processedResponse = JSON.parse(trimmed);
+        } else {
+          processedResponse = { text: response };
+        }
+      } catch (parseErr) {
+        processedResponse = { text: response };
+      }
+    } else if (typeof response === 'object' && response !== null) {
+      processedResponse = response;
+    } else {
+      processedResponse = { text: String(response) };
+    }
+    
     const saved = await GameContent.create({ 
       prompt, 
-      response: typeof response === 'object' ? response : { text: response },
+      response: processedResponse,
       type: type || 'general',
       category: 'custom',
       metadata: {
@@ -364,10 +385,10 @@ exports.handlePrompt = async (req, res) => {
 
     res.json({ 
       success: true,
-      response, 
+      response: processedResponse, 
       savedId: saved._id,
       type: type || 'general',
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (error) {
     handleError(error, res, 'handle prompt');
@@ -403,7 +424,7 @@ exports.generateImageFromText = async (req, res) => {
         dimensions: `${imageData.width}x${imageData.height}`,
         seed: imageData.seed,
         validated: true,
-        generatedWith: 'groq-free'
+        generatedWith: 'huggingface-free'
       }
     });
 
@@ -412,7 +433,7 @@ exports.generateImageFromText = async (req, res) => {
       imageUrl: imageData.imageUrl,
       imageData,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
     handleError(err, res, 'generate image');
@@ -420,7 +441,7 @@ exports.generateImageFromText = async (req, res) => {
 };
 
 // ============================================
-// IMAGE: IMAGE TO IMAGE
+// IMAGE: IMAGE TO IMAGE - FIXED VERSION
 // ============================================
 exports.generateImageFromImageInput = async (req, res) => {
   try {
@@ -428,14 +449,23 @@ exports.generateImageFromImageInput = async (req, res) => {
 
     if (!sourceImage) {
       return res.status(400).json({ 
+        success: false,
         error: 'Source image is required (base64 format)'
       });
     }
 
     console.log('🎨 Starting image-to-image conversion...');
+    console.log('📊 Parameters:', { 
+      hasPrompt: !!prompt, 
+      artStyle, 
+      assetType, 
+      strength,
+      dimensions: `${width || 512}x${height || 512}`
+    });
 
     let enhancedPrompt = prompt;
 
+    // Auto-generate prompt if not provided
     if (!prompt || !prompt.trim()) {
       const assetDescriptions = {
         'character': 'professional game character with detailed design',
@@ -457,6 +487,7 @@ exports.generateImageFromImageInput = async (req, res) => {
       const styleDesc = styleDescriptions[artStyle] || '2D game art';
       
       enhancedPrompt = `Transform this into ${assetDesc}, ${styleDesc}, high quality`;
+      console.log('🤖 Auto-generated prompt:', enhancedPrompt);
     }
 
     const imageData = await generateImageFromImage(sourceImage, enhancedPrompt, {
@@ -481,7 +512,7 @@ exports.generateImageFromImageInput = async (req, res) => {
         strength: imageData.strength,
         transformationType: 'sketch-to-art',
         validated: true,
-        generatedWith: 'groq-free'
+        generatedWith: 'huggingface-free'
       }
     });
 
@@ -497,10 +528,11 @@ exports.generateImageFromImageInput = async (req, res) => {
         enhancedPrompt: enhancedPrompt,
         usedAutoPrompt: !prompt || !prompt.trim()
       },
-      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
+      info: '✅ Generated using Hugging Face FREE API'
     });
 
   } catch (err) {
+    console.error('❌ Image transformation failed:', err);
     handleError(err, res, 'transform image');
   }
 };
