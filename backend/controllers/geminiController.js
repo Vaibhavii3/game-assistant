@@ -1,39 +1,60 @@
 const { callGemini, validateGameContent, generateImage, generateImageFromImage } = require('../services/geminiService');
 const GameContent = require('../models/propmtModel');
 
-exports.handlePrompt = async (req, res) => {
-  const { prompt, type } = req.body;
-
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+// ============================================
+// IMPROVED ERROR HANDLER
+// ============================================
+const handleError = (err, res, context) => {
+  console.error(`❌ ${context} error:`, err);
+  console.error('Error stack:', err.stack);
+  
+  let errorMessage = err.message || 'Unknown error occurred';
+  let tip = 'Try again in a moment';
+  let statusCode = 500;
+  
+  // Rate limit errors
+  if (errorMessage.includes('rate') || errorMessage.includes('429')) {
+    errorMessage = 'Rate limit exceeded';
+    tip = 'Please wait 5-10 minutes before trying again. Free tier has limited requests.';
+    statusCode = 429;
   }
-
-  try {
-    const response = await callGemini(prompt, type || 'text');
-    
-    const saved = await GameContent.create({ 
-      prompt, 
-      response: typeof response === 'object' ? response : { text: response },
-      type: type || 'general',
-      category: 'custom'
-    });
-
-    res.json({ 
-      success: true,
-      response, 
-      savedId: saved._id,
-      type: type || 'general'
-    });
-  } catch (error) {
-    console.error('Prompt handler error:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate response',
-      details: error.message 
-    });
+  // Timeout errors
+  else if (errorMessage.includes('timeout')) {
+    errorMessage = 'Request timed out';
+    tip = 'The API took too long. Try again with a simpler prompt or wait a moment.';
+    statusCode = 504;
   }
+  // All models failed
+  else if (errorMessage.includes('All models failed')) {
+    errorMessage = 'All AI models are currently unavailable';
+    tip = 'Hugging Face free tier may be experiencing high traffic. Try again in 10-15 minutes.';
+    statusCode = 503;
+  }
+  // Model loading errors
+  else if (errorMessage.includes('loading') || errorMessage.includes('503')) {
+    errorMessage = 'Model is loading';
+    tip = 'The AI model is starting up (cold start). Please wait 30-60 seconds and try again.';
+    statusCode = 503;
+  }
+  // API key errors
+  else if (errorMessage.includes('API') && errorMessage.includes('key')) {
+    errorMessage = 'API configuration error';
+    tip = 'Server configuration issue. Please contact support.';
+    statusCode = 500;
+  }
+  
+  res.status(statusCode).json({ 
+    success: false,
+    error: `Failed to ${context}`,
+    details: errorMessage,
+    tip: tip,
+    timestamp: new Date().toISOString()
+  });
 };
 
-// Character generation with validation
+// ============================================
+// CHARACTER GENERATION
+// ============================================
 exports.createCharacter = async (req, res) => {
   const { prompt, characterType } = req.body;
   const defaultPrompt = characterType 
@@ -43,6 +64,9 @@ exports.createCharacter = async (req, res) => {
   const userPrompt = prompt || defaultPrompt;
 
   try {
+    console.log('🎮 Generating character...');
+    console.log('📝 User prompt:', userPrompt);
+    
     const character = await callGemini(userPrompt, 'character');
     
     // Validate character has required fields
@@ -55,26 +79,29 @@ exports.createCharacter = async (req, res) => {
       category: 'character',
       metadata: {
         characterClass: character.class,
-        validated: validation.isValid
+        validated: validation.isValid,
+        generatedWith: 'huggingface-free'
       }
     });
+
+    console.log('✅ Character created successfully');
 
     res.json({ 
       success: true,
       character,
       validation,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API',
+      warning: validation.isValid ? null : 'Some fields may be missing due to AI limitations'
     });
   } catch (err) {
-    console.error('Character creation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate character',
-      details: err.message 
-    });
+    handleError(err, res, 'generate character');
   }
 };
 
-// Quest generation
+// ============================================
+// QUEST GENERATION
+// ============================================
 exports.generateQuest = async (req, res) => {
   const { prompt, difficulty, questType } = req.body;
   
@@ -84,6 +111,7 @@ exports.generateQuest = async (req, res) => {
   }
 
   try {
+    console.log('🎮 Generating quest...');
     const quest = await callGemini(questPrompt, 'quest');
     
     const validation = validateGameContent(quest, 'quest');
@@ -96,7 +124,8 @@ exports.generateQuest = async (req, res) => {
       metadata: {
         difficulty: quest.difficulty,
         questType: quest.type,
-        validated: validation.isValid
+        validated: validation.isValid,
+        generatedWith: 'huggingface-free'
       }
     });
 
@@ -104,18 +133,17 @@ exports.generateQuest = async (req, res) => {
       success: true,
       quest,
       validation,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
-    console.error('Quest generation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate quest',
-      details: err.message 
-    });
+    handleError(err, res, 'generate quest');
   }
 };
 
-// Dialogue generation
+// ============================================
+// DIALOGUE GENERATION
+// ============================================
 exports.generateDialogue = async (req, res) => {
   const { prompt, npcType, mood } = req.body;
   
@@ -125,6 +153,7 @@ exports.generateDialogue = async (req, res) => {
   }
 
   try {
+    console.log('🎮 Generating dialogue...');
     const dialogue = await callGemini(dialoguePrompt, 'dialogue');
     
     const validation = validateGameContent(dialogue, 'dialogue');
@@ -137,7 +166,8 @@ exports.generateDialogue = async (req, res) => {
       metadata: {
         npcRole: dialogue.npcRole,
         mood: dialogue.mood,
-        validated: validation.isValid
+        validated: validation.isValid,
+        generatedWith: 'huggingface-free'
       }
     });
 
@@ -145,24 +175,24 @@ exports.generateDialogue = async (req, res) => {
       success: true,
       dialogue,
       validation,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
-    console.error('Dialogue generation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate dialogue',
-      details: err.message 
-    });
+    handleError(err, res, 'generate dialogue');
   }
 };
 
-// World/Location building
+// ============================================
+// WORLD GENERATION
+// ============================================
 exports.generateWorld = async (req, res) => {
   const { prompt, locationType } = req.body;
   
   const worldPrompt = prompt || `Create a detailed ${locationType || 'fantasy'} game world`;
 
   try {
+    console.log('🎮 Generating world...');
     const world = await callGemini(worldPrompt, 'worldBuilding');
     
     const saved = await GameContent.create({ 
@@ -172,25 +202,25 @@ exports.generateWorld = async (req, res) => {
       category: 'worldBuilding',
       metadata: {
         locationType: world.type,
-        atmosphere: world.atmosphere
+        atmosphere: world.atmosphere,
+        generatedWith: 'huggingface-free'
       }
     });
 
     res.json({ 
       success: true,
       world,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
-    console.error('World generation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate world',
-      details: err.message 
-    });
+    handleError(err, res, 'generate world');
   }
 };
 
-// Enemy/Monster generation
+// ============================================
+// ENEMY GENERATION
+// ============================================
 exports.generateEnemy = async (req, res) => {
   const { prompt, level, enemyType } = req.body;
   
@@ -200,6 +230,7 @@ exports.generateEnemy = async (req, res) => {
   }
 
   try {
+    console.log('🎮 Generating enemy...');
     const enemy = await callGemini(enemyPrompt, 'enemy');
     
     const validation = validateGameContent(enemy, 'enemy');
@@ -212,7 +243,8 @@ exports.generateEnemy = async (req, res) => {
       metadata: {
         level: enemy.level,
         enemyType: enemy.type,
-        validated: validation.isValid
+        validated: validation.isValid,
+        generatedWith: 'huggingface-free'
       }
     });
 
@@ -220,18 +252,17 @@ exports.generateEnemy = async (req, res) => {
       success: true,
       enemy,
       validation,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
-    console.error('Enemy generation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate enemy',
-      details: err.message 
-    });
+    handleError(err, res, 'generate enemy');
   }
 };
 
-// Item/Equipment generation
+// ============================================
+// ITEM GENERATION
+// ============================================
 exports.generateItem = async (req, res) => {
   const { prompt, itemType, rarity } = req.body;
   
@@ -241,6 +272,7 @@ exports.generateItem = async (req, res) => {
   }
 
   try {
+    console.log('🎮 Generating item...');
     const item = await callGemini(itemPrompt, 'item');
     
     const validation = validateGameContent(item, 'item');
@@ -253,7 +285,8 @@ exports.generateItem = async (req, res) => {
       metadata: {
         itemType: item.type,
         rarity: item.rarity,
-        validated: validation.isValid
+        validated: validation.isValid,
+        generatedWith: 'huggingface-free'
       }
     });
 
@@ -261,24 +294,24 @@ exports.generateItem = async (req, res) => {
       success: true,
       item,
       validation,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
-    console.error('Item generation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate item',
-      details: err.message 
-    });
+    handleError(err, res, 'generate item');
   }
 };
 
-// Story beat generation
+// ============================================
+// STORY GENERATION
+// ============================================
 exports.generateStory = async (req, res) => {
   const { prompt, chapter } = req.body;
   
   const storyPrompt = prompt || `Create an engaging story moment for ${chapter || 'the beginning'} of my game`;
 
   try {
+    console.log('🎮 Generating story...');
     const story = await callGemini(storyPrompt, 'storyBeat');
     
     const saved = await GameContent.create({ 
@@ -288,25 +321,193 @@ exports.generateStory = async (req, res) => {
       category: 'narrative',
       metadata: {
         chapter: story.chapter,
-        mood: story.mood
+        mood: story.mood,
+        generatedWith: 'huggingface-free'
       }
     });
 
     res.json({ 
       success: true,
       story,
-      savedId: saved._id 
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
     });
   } catch (err) {
-    console.error('Story generation error:', err);
-    res.status(500).json({ 
-      error: 'Failed to generate story',
-      details: err.message 
-    });
+    handleError(err, res, 'generate story');
   }
 };
 
-// Get all saved content with filters
+// ============================================
+// GENERAL PROMPT HANDLER
+// ============================================
+exports.handlePrompt = async (req, res) => {
+  const { prompt, type } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
+  }
+
+  try {
+    console.log('🎮 Processing general prompt...');
+    const response = await callGemini(prompt, type || 'text');
+    
+    const saved = await GameContent.create({ 
+      prompt, 
+      response: typeof response === 'object' ? response : { text: response },
+      type: type || 'general',
+      category: 'custom',
+      metadata: {
+        generatedWith: 'huggingface-free',
+        timestamp: new Date()
+      }
+    });
+
+    res.json({ 
+      success: true,
+      response, 
+      savedId: saved._id,
+      type: type || 'general',
+      info: '✅ Generated using Hugging Face FREE API'
+    });
+  } catch (error) {
+    handleError(error, res, 'handle prompt');
+  }
+};
+
+// ============================================
+// IMAGE: TEXT TO IMAGE
+// ============================================
+exports.generateImageFromText = async (req, res) => {
+  const { prompt, width, height, model, seed } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
+  }
+
+  try {
+    console.log('🎨 Generating image from text...');
+    const imageData = await generateImage(prompt, {
+      width: width || 512,
+      height: height || 512,
+      model: model || 'turbo',
+      seed: seed || Math.floor(Math.random() * 1000000)
+    });
+
+    const saved = await GameContent.create({
+      prompt,
+      response: imageData,
+      type: 'image',
+      category: 'image',
+      metadata: {
+        imageModel: imageData.model,
+        dimensions: `${imageData.width}x${imageData.height}`,
+        seed: imageData.seed,
+        validated: true,
+        generatedWith: 'huggingface-free'
+      }
+    });
+
+    res.json({
+      success: true,
+      imageUrl: imageData.imageUrl,
+      imageData,
+      savedId: saved._id,
+      info: '✅ Generated using Hugging Face FREE API'
+    });
+  } catch (err) {
+    handleError(err, res, 'generate image');
+  }
+};
+
+// ============================================
+// IMAGE: IMAGE TO IMAGE
+// ============================================
+exports.generateImageFromImageInput = async (req, res) => {
+  try {
+    const { prompt, sourceImage, width, height, model, strength, artStyle, seed, assetType } = req.body;
+
+    if (!sourceImage) {
+      return res.status(400).json({ 
+        error: 'Source image is required (base64 format)'
+      });
+    }
+
+    console.log('🎨 Starting image-to-image conversion...');
+
+    let enhancedPrompt = prompt;
+
+    if (!prompt || !prompt.trim()) {
+      const assetDescriptions = {
+        'character': 'professional game character with detailed design',
+        'scene': 'detailed game environment background',
+        'item': 'polished game item with clean design',
+        'enemy': 'menacing game enemy',
+        'ui': 'clean game UI element'
+      };
+      
+      const styleDescriptions = {
+        '2d': '2D game art style, hand-painted',
+        '3d': '3D rendered style, realistic lighting',
+        'anime': 'anime game art style, cel-shaded',
+        'pixel': 'pixel art style, retro gaming',
+        'realistic': 'photorealistic game graphics'
+      };
+    
+      const assetDesc = assetDescriptions[assetType] || 'professional game asset';
+      const styleDesc = styleDescriptions[artStyle] || '2D game art';
+      
+      enhancedPrompt = `Transform this into ${assetDesc}, ${styleDesc}, high quality`;
+    }
+
+    const imageData = await generateImageFromImage(sourceImage, enhancedPrompt, {
+      width: width || 512,
+      height: height || 512,
+      model: model || 'img2img',
+      strength: strength || 0.75,
+      artStyle: artStyle || '2d',
+      seed: seed || Math.floor(Math.random() * 1000000)
+    });
+
+    const saved = await GameContent.create({
+      prompt: enhancedPrompt,
+      response: imageData,
+      type: 'image-to-image',
+      category: assetType || 'image-conversion',
+      metadata: {
+        imageModel: imageData.model,
+        dimensions: `${imageData.width}x${imageData.height}`,
+        seed: imageData.seed,
+        artStyle: imageData.artStyle,
+        strength: imageData.strength,
+        transformationType: 'sketch-to-art',
+        validated: true,
+        generatedWith: 'huggingface-free'
+      }
+    });
+
+    console.log('✅ Transformation successful!');
+
+    res.json({
+      success: true,
+      message: 'Image transformed successfully!',
+      imageUrl: imageData.imageUrl,
+      imageData: {
+        ...imageData,
+        savedId: saved._id,
+        enhancedPrompt: enhancedPrompt,
+        usedAutoPrompt: !prompt || !prompt.trim()
+      },
+      info: '✅ Generated using Hugging Face FREE API'
+    });
+
+  } catch (err) {
+    handleError(err, res, 'transform image');
+  }
+};
+
+// ============================================
+// GET SAVED CONTENT
+// ============================================
 exports.getSavedContent = async (req, res) => {
   try {
     const { type, category, limit = 20 } = req.query;
@@ -325,15 +526,13 @@ exports.getSavedContent = async (req, res) => {
       content 
     });
   } catch (err) {
-    console.error('Get content error:', err);
-    res.status(500).json({ 
-      error: 'Failed to retrieve content',
-      details: err.message 
-    });
+    handleError(err, res, 'retrieve content');
   }
 };
 
-// Get content by ID
+// ============================================
+// GET CONTENT BY ID
+// ============================================
 exports.getContentById = async (req, res) => {
   try {
     const content = await GameContent.findById(req.params.id);
@@ -347,15 +546,13 @@ exports.getContentById = async (req, res) => {
       content 
     });
   } catch (err) {
-    console.error('Get content by ID error:', err);
-    res.status(500).json({ 
-      error: 'Failed to retrieve content',
-      details: err.message 
-    });
+    handleError(err, res, 'retrieve content by ID');
   }
 };
 
-// Delete content
+// ============================================
+// DELETE CONTENT
+// ============================================
 exports.deleteContent = async (req, res) => {
   try {
     const content = await GameContent.findByIdAndDelete(req.params.id);
@@ -369,15 +566,13 @@ exports.deleteContent = async (req, res) => {
       message: 'Content deleted successfully' 
     });
   } catch (err) {
-    console.error('Delete content error:', err);
-    res.status(500).json({ 
-      error: 'Failed to delete content',
-      details: err.message 
-    });
+    handleError(err, res, 'delete content');
   }
 };
 
-// Get statistics
+// ============================================
+// GET STATISTICS
+// ============================================
 exports.getStats = async (req, res) => {
   try {
     const stats = await GameContent.aggregate([
@@ -394,186 +589,10 @@ exports.getStats = async (req, res) => {
     res.json({ 
       success: true,
       total,
-      byCategory: stats 
+      byCategory: stats,
+      generatedWith: 'huggingface-free'
     });
   } catch (err) {
-    console.error('Get stats error:', err);
-    res.status(500).json({ 
-      error: 'Failed to get statistics',
-      details: err.message 
-    });
-  }
-};
-
-exports.generateImageFromText = async (req, res) => {
-  const { prompt, width, height, model, seed } = req.body;
-
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
-  }
-
-  try {
-    const imageData = await generateImage(prompt, {
-      width: width || 1024,
-      height: height || 1024,
-      model: model || 'flux',
-      seed: seed || Math.floor(Math.random() * 1000000),
-      nologo: true,
-      enhance: true
-    });
-
-    const saved = await GameContent.create({
-      prompt,
-      response: imageData,
-      type: 'image',
-      category: 'image',
-      metadata: {
-        imageModel: imageData.model,
-        dimensions: `${imageData.width}x${imageData.height}`,
-        seed: imageData.seed,
-        validated: true
-      }
-    });
-
-    res.json({
-      success: true,
-      imageUrl: imageData.imageUrl,
-      imageData,
-      savedId: saved._id
-    });
-  } catch (err) {
-    console.error('Image generation error:', err);
-    res.status(500).json({
-      error: 'Failed to generate image',
-      details: err.message
-    });
-  }
-};
-
-exports.generateImageFromImageInput = async (req, res) => {
-  try {
-    const { prompt, sourceImage, width, height, model, strength, artStyle, seed, assetType } = req.body;
-
-    // Validation
-    // if (!prompt) {
-    //   return res.status(400).json({ 
-    //     error: 'Prompt is required',
-    //     example: 'Convert this sketch into a fantasy warrior character'
-    //   });
-    // }
-
-    if (!sourceImage) {
-      return res.status(400).json({ 
-        error: 'Source image is required (base64 format)',
-        example: 'Upload an image file to transform it into professional game art'
-      });
-    }
-
-    console.log('🎨 Starting image-to-image conversion...');
-    console.log('📸 Source Image:', sourceImage ? 'Uploaded ✅' : 'Missing ❌');
-    console.log('Asset Type:', assetType || 'general');
-    console.log('Art Style:', artStyle || '2d');
-    console.log('💬 Custom Prompt:', prompt || 'Auto-generated based on selections');
-
-    // Generate enhanced prompt based on asset type
-    let enhancedPrompt = prompt;
-
-    if (prompt && prompt.trim()) {
-      // User provided custom prompt - use it as base
-      enhancedPrompt = prompt;
-      console.log('✍️ Using custom prompt');
-    } else {
-      // Auto-generate prompt based on selections
-      console.log('🤖 Auto-generating prompt from options...');
-
-
-      const assetDescriptions = {
-        'character': 'professional game character with detailed design',
-        'scene': 'detailed game environment background with atmospheric lighting',
-        'item': 'polished game item with clean design',
-        'enemy': 'menacing game enemy with intimidating appearance',
-        'ui': 'clean game UI element with polished design'
-      };
-      
-      const styleDescriptions = {
-        '2d': '2D game art style, hand-painted, vibrant colors',
-        '3d': '3D rendered style, realistic lighting, detailed textures',
-        'anime': 'anime game art style, cel-shaded, clean linework',
-        'pixel': 'pixel art style, retro gaming aesthetic',
-        'realistic': 'photorealistic game graphics, high detail'
-      };
-    
-    const assetDesc = assetDescriptions[assetType] || 'professional game asset';
-      const styleDesc = styleDescriptions[artStyle] || '2D game art style';
-      
-      enhancedPrompt = `Transform this into ${assetDesc}, ${styleDesc}, high quality, game-ready`;
-    }
-
-    // ✅ Add asset-specific enhancements
-    if (assetType) {
-      const assetEnhancers = {
-        'character': 'detailed character design, full body view, professional quality',
-        'scene': 'immersive environment, atmospheric details, game background',
-        'item': 'clean composition, detailed asset, UI-ready icon',
-        'enemy': 'creature concept art, menacing design, game-ready enemy',
-        'ui': 'polished interface element, clean layout, professional UI'
-      };
-      
-      const enhancer = assetEnhancers[assetType] || 'professional game asset';
-      enhancedPrompt = `${enhancedPrompt}, ${enhancer}`;
-    }
-
-    console.log('📝 Final Enhanced Prompt:', enhancedPrompt);
-
-    // Call the image-to-image service
-    const imageData = await generateImageFromImage(sourceImage, enhancedPrompt, {
-      width: width || 1024,
-      height: height || 1024,
-      model: model || 'img2img',
-      strength: strength || 0.75,
-      artStyle: artStyle || '2d',
-      seed: seed || Math.floor(Math.random() * 1000000)
-    });
-
-    // Save to database
-    const saved = await GameContent.create({
-      prompt: enhancedPrompt,
-      response: imageData,
-      type: 'image-to-image',
-      category: assetType || 'image-conversion',
-      metadata: {
-        imageModel: imageData.model,
-        dimensions: `${imageData.width}x${imageData.height}`,
-        seed: imageData.seed,
-        artStyle: imageData.artStyle,
-        strength: imageData.strength,
-        transformationType: 'sketch-to-art',
-        hasCustomPrompt: !!(prompt && prompt.trim()),
-        autoGenerated: !(prompt && prompt.trim()),
-        validated: true
-      }
-    });
-
-    console.log('✅ Transformation successful!');
-
-    res.json({
-      success: true,
-      message: 'Image transformed successfully!',
-      imageUrl: imageData.imageUrl,
-      imageData: {
-        ...imageData,
-        savedId: saved._id,
-        enhancedPrompt: enhancedPrompt,
-        usedAutoPrompt: !(prompt && prompt.trim())
-      }
-    });
-
-  } catch (err) {
-    console.error('❌ Image-to-image error:', err);
-    res.status(500).json({
-      error: 'Failed to transform image',
-      details: err.message,
-      suggestion: 'Try adjusting the strength (0.5-0.9) or use a different art style'
-    });
+    handleError(err, res, 'retrieve statistics');
   }
 };
