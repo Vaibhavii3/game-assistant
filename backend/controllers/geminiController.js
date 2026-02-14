@@ -80,7 +80,7 @@ exports.createCharacter = async (req, res) => {
       metadata: {
         characterClass: character.class,
         validated: validation.isValid,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -91,7 +91,7 @@ exports.createCharacter = async (req, res) => {
       character,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API',
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)',
       warning: validation.isValid ? null : 'Some fields may be missing due to AI limitations'
     });
   } catch (err) {
@@ -125,7 +125,7 @@ exports.generateQuest = async (req, res) => {
         difficulty: quest.difficulty,
         questType: quest.type,
         validated: validation.isValid,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -134,7 +134,7 @@ exports.generateQuest = async (req, res) => {
       quest,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate quest');
@@ -167,7 +167,7 @@ exports.generateDialogue = async (req, res) => {
         npcRole: dialogue.npcRole,
         mood: dialogue.mood,
         validated: validation.isValid,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -176,7 +176,7 @@ exports.generateDialogue = async (req, res) => {
       dialogue,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate dialogue');
@@ -203,7 +203,7 @@ exports.generateWorld = async (req, res) => {
       metadata: {
         locationType: world.type,
         atmosphere: world.atmosphere,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -211,7 +211,7 @@ exports.generateWorld = async (req, res) => {
       success: true,
       world,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate world');
@@ -244,7 +244,7 @@ exports.generateEnemy = async (req, res) => {
         level: enemy.level,
         enemyType: enemy.type,
         validated: validation.isValid,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -253,7 +253,7 @@ exports.generateEnemy = async (req, res) => {
       enemy,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate enemy');
@@ -286,7 +286,7 @@ exports.generateItem = async (req, res) => {
         itemType: item.type,
         rarity: item.rarity,
         validated: validation.isValid,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -295,7 +295,7 @@ exports.generateItem = async (req, res) => {
       item,
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate item');
@@ -322,7 +322,7 @@ exports.generateStory = async (req, res) => {
       metadata: {
         chapter: story.chapter,
         mood: story.mood,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -330,7 +330,7 @@ exports.generateStory = async (req, res) => {
       success: true,
       story,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate story');
@@ -357,7 +357,7 @@ exports.handlePrompt = async (req, res) => {
       type: type || 'general',
       category: 'custom',
       metadata: {
-        generatedWith: 'huggingface-free',
+        generatedWith: 'groq-free',
         timestamp: new Date()
       }
     });
@@ -367,7 +367,7 @@ exports.handlePrompt = async (req, res) => {
       response, 
       savedId: saved._id,
       type: type || 'general',
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (error) {
     handleError(error, res, 'handle prompt');
@@ -403,7 +403,7 @@ exports.generateImageFromText = async (req, res) => {
         dimensions: `${imageData.width}x${imageData.height}`,
         seed: imageData.seed,
         validated: true,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -412,7 +412,7 @@ exports.generateImageFromText = async (req, res) => {
       imageUrl: imageData.imageUrl,
       imageData,
       savedId: saved._id,
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate image');
@@ -481,7 +481,7 @@ exports.generateImageFromImageInput = async (req, res) => {
         strength: imageData.strength,
         transformationType: 'sketch-to-art',
         validated: true,
-        generatedWith: 'huggingface-free'
+        generatedWith: 'groq-free'
       }
     });
 
@@ -497,7 +497,7 @@ exports.generateImageFromImageInput = async (req, res) => {
         enhancedPrompt: enhancedPrompt,
         usedAutoPrompt: !prompt || !prompt.trim()
       },
-      info: '✅ Generated using Hugging Face FREE API'
+      info: '✅ Generated using Groq FREE API (Fast Hugging Face FREE API Reliable)'
     });
 
   } catch (err) {
@@ -590,7 +590,7 @@ exports.getStats = async (req, res) => {
       success: true,
       total,
       byCategory: stats,
-      generatedWith: 'huggingface-free'
+      generatedWith: 'groq-free'
     });
   } catch (err) {
     handleError(err, res, 'retrieve statistics');

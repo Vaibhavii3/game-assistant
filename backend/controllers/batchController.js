@@ -1,14 +1,6 @@
 const { callGemini, validateGameContent, generateImage } = require('../services/geminiService');
 const GameContent = require('../models/propmtModel');
 
-// ============================================
-// BATCH GENERATION CONTROLLER (IMPROVED)
-// ============================================
-
-/**
- * Generate multiple content pieces of same type
- * POST /api/gemini/batch/generate
- */
 exports.batchGenerate = async (req, res) => {
   try {
     const { type, count, basePrompt, variations = false, saveToDb = true } = req.body;
@@ -128,10 +120,6 @@ exports.batchGenerate = async (req, res) => {
   }
 };
 
-/**
- * Generate a complete game world (multiple content types)
- * POST /api/gemini/batch/world
- */
 exports.batchGenerateWorld = async (req, res) => {
   try {
     const { theme, characters = 0, quests = 0, enemies = 0, items = 0, locations = 0 } = req.body;
@@ -323,10 +311,6 @@ exports.batchGenerateWorld = async (req, res) => {
   }
 };
 
-/**
- * Batch image generation
- * POST /api/gemini/batch/images
- */
 exports.batchGenerateImages = async (req, res) => {
   try {
     const { prompts, artStyle = '2d', width = 1024, height = 1024 } = req.body;
@@ -417,10 +401,6 @@ exports.batchGenerateImages = async (req, res) => {
   }
 };
 
-/**
- * Generate variations of existing content
- * POST /api/gemini/batch/variations
- */
 exports.batchGenerateVariations = async (req, res) => {
   try {
     const { contentId, count, variationType = 'style' } = req.body;
@@ -498,9 +478,6 @@ exports.batchGenerateVariations = async (req, res) => {
   }
 };
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 
 function addVariation(basePrompt, index, type) {
   const variations = {
