@@ -10,7 +10,6 @@ MythiCraft Engine is a full-stack, AI-driven game content generation platform de
 
 * 🤖 **AI-Powered Content Generation**
   Generate game-ready content using **9+ AI generators**, including:
-
   * Characters
   * Quests
   * Dialogues
@@ -18,15 +17,8 @@ MythiCraft Engine is a full-stack, AI-driven game content generation platform de
   * Items
   * Lore & world-building elements
 
-* 🎨 **Image-to-Image Transformation**
-  Convert rough sketches into polished artwork using **Hugging Face models** such as **FLUX** and **SDXL**.
-
-* ✏️ **Smart Auto-Prompt System**
-  Automatically generates optimized AI prompts from sketches and minimal inputs, enabling smooth sketch-to-art workflows.
-
 * 🖼️ **High-Resolution Image Generation**
   Supports **1024×1024** image output across multiple styles:
-
   * 2D Illustration
   * 3D Concept Art
   * Anime
@@ -42,7 +34,7 @@ MythiCraft Engine is a full-stack, AI-driven game content generation platform de
 
 ## 🧠 AI Stack
 
-* **Google Gemini AI** – Text-based content generation (story, dialogue, quests)
+* **Groq** – Ultra-fast inference for real-time AI responses
 * **Hugging Face** – Image generation & transformation (FLUX, SDXL)
 
 ---
@@ -50,24 +42,20 @@ MythiCraft Engine is a full-stack, AI-driven game content generation platform de
 ## 🛠️ Tech Stack
 
 ### Frontend
-
 * React
 * Modern UI with real-time validation
 
 ### Backend
-
 * Node.js
 * Express.js
 * RESTful API architecture
 
 ### Database
-
 * MongoDB (content storage, metadata, analytics)
 
 ### AI Integration
-
-* Google Gemini AI
-* Hugging Face Transformers & Diffusion Models
+* Groq (high-speed inference)
+* Hugging Face Transformers & Diffusion Models (image generation & transformation)
 
 ---
 
@@ -76,6 +64,8 @@ MythiCraft Engine is a full-stack, AI-driven game content generation platform de
 * Indie game development
 * Rapid prototyping of game ideas
 * AI-assisted concept art generation
+* Sketch-to-final-art workflows
+* Style transfer for existing game assets
 * Narrative and quest design
 * World-building and lore creation
 
@@ -85,17 +75,15 @@ MythiCraft Engine is a full-stack, AI-driven game content generation platform de
 
 * Full MERN stack implementation with scalable architecture
 * Modular AI services for easy future model upgrades
+* Multi-provider AI integration ( Groq, Hugging Face)
+* Image transformation pipeline with style transfer capabilities
 * Clean separation of frontend, backend, and AI layers
-* Production-ready API design with validation and tracking
 
 ---
 
-## 🔮 Future Enhancements
+## 📝 License
 
-* Multiplayer asset collaboration
-* Versioning system for generated content
-* In-game engine plugins (Unity / Unreal)
-* Fine-tuned custom AI models
+This project is licensed under the MIT License.
 
 ---
 
