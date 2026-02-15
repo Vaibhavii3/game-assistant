@@ -1,259 +1,217 @@
 const axios = require("axios");
 
 // ============================================
-// GAME CONTENT PROMPTS
+// GAME CONTENT PROMPTS - MARKDOWN/TEXT FORMAT
 // ============================================
 const GAME_PROMPTS = {
   character: (userPrompt) => `
 You are a professional game designer. Create a detailed game character based on this request: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "name": "Character name",
-  "class": "Character class/type",
-  "backstory": "Detailed 3-4 sentence backstory",
-  "personality": "Personality traits and quirks",
-  "abilities": ["ability1", "ability2", "ability3"],
-  "stats": {
-    "health": 100,
-    "strength": 75,
-    "intelligence": 80,
-    "agility": 70,
-    "charisma": 65
-  },
-  "equipment": ["item1", "item2"],
-  "weaknesses": "Character weaknesses",
-  "motivation": "What drives this character"
-}`,
+[Character Name]
+────────────────────────────────────────
+Class: [Character class/type]
+
+[Write 3-4 engaging sentences about the character's backstory and origins]
+
+Personality: [Describe their personality traits and quirks]
+
+Abilities:
+• [Ability 1]
+• [Ability 2]
+• [Ability 3]
+
+Stats:
+health: [value]
+strength: [value]
+intelligence: [value]
+agility: [value]
+charisma: [value]
+
+Equipment: [List equipment items]
+Weaknesses: [Character weaknesses]
+Motivation: [What drives this character]`,
 
   quest: (userPrompt) => `
 You are a professional quest designer. Create an engaging game quest based on: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "title": "Quest name",
-  "type": "main",
-  "difficulty": "medium",
-  "description": "Engaging quest description",
-  "objectives": [
-    {"task": "objective 1", "completed": false},
-    {"task": "objective 2", "completed": false}
-  ],
-  "rewards": {
-    "experience": 500,
-    "gold": 250,
-    "items": ["reward item 1", "reward item 2"]
-  },
-  "npc": {
-    "name": "Quest giver name",
-    "location": "Where to find them",
-    "dialogue": "What they say when giving quest"
-  },
-  "story": "Deeper narrative context",
-  "tips": ["hint 1", "hint 2"]
-}`,
+[Quest Title]
+════════════════════════════════════════
+Type: [main/side/daily] | Difficulty: [easy/medium/hard]
+
+[Write an engaging quest description]
+
+Quest Giver:
+  Name: [NPC Name]
+  Location: [Where to find them]
+  Says: "[What they say]"
+
+Objectives:
+  → [Objective 1]
+  → [Objective 2]
+  → [Objective 3]
+
+Story: [Deeper narrative context]
+
+Rewards:
+  Experience: [amount] XP
+  Gold: [amount] gold
+  Items: [List items]
+
+Tips:
+  💡 [Hint 1]
+  💡 [Hint 2]`,
 
   dialogue: (userPrompt) => `
 You are a professional game writer. Create natural NPC dialogue for: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "npcName": "NPC name",
-  "npcRole": "Role/occupation",
-  "mood": "friendly",
-  "location": "Where this dialogue happens",
-  "dialogueOptions": [
-    {
-      "npcLine": "What NPC says",
-      "playerChoices": [
-        {"text": "Player option 1", "response": "NPC response to option 1"},
-        {"text": "Player option 2", "response": "NPC response to option 2"}
-      ]
-    }
-  ],
-  "questHint": "Optional quest hint if relevant",
-  "personality": "NPC personality description"
-}`,
+Dialogue with [NPC Name]
+────────────────────────────────────────
+Role: [NPC's occupation]
+Mood: [friendly/hostile/mysterious]
+Location: [Where this happens]
+
+Conversation:
+NPC: "[What NPC says]"
+
+Player Options:
+  1) [Player choice 1]
+     → NPC: "[Response to choice 1]"
+  
+  2) [Player choice 2]
+     → NPC: "[Response to choice 2]"
+
+Personality: [NPC personality description]
+Quest Hint: [Optional hint if relevant]`,
 
   worldBuilding: (userPrompt) => `
 You are a professional world builder. Create a detailed game world/location based on: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "name": "Location name",
-  "type": "city",
-  "description": "Vivid 3-4 sentence description",
-  "atmosphere": "The feeling/mood of this place",
-  "inhabitants": ["race/creature 1", "race/creature 2"],
-  "pointsOfInterest": [
-    {"name": "POI 1", "description": "What's special here"}
-  ],
-  "resources": ["resource 1", "resource 2"],
-  "dangers": ["danger 1", "danger 2"],
-  "lore": "Historical background",
-  "climate": "Weather and environment",
-  "economy": "What drives this place"
-}`,
+[Location Name]
+════════════════════════════════════════
+Type: [city/dungeon/forest/etc]
+
+[Write a vivid 3-4 sentence description]
+
+Atmosphere: [The feeling/mood of this place]
+
+Inhabitants:
+  • [Race/creature 1]
+  • [Race/creature 2]
+
+Points of Interest:
+  ⭐ [POI 1]: [Description]
+  ⭐ [POI 2]: [Description]
+
+Resources: [Available resources]
+Dangers: [Threats in this area]
+Lore: [Historical background]
+Climate: [Weather and environment]`,
 
   enemy: (userPrompt) => `
 You are a professional game designer. Create a balanced game enemy based on: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "name": "Enemy name",
-  "type": "beast",
-  "level": 10,
-  "description": "Visual and behavioral description",
-  "stats": {
-    "health": 500,
-    "attack": 75,
-    "defense": 50,
-    "speed": 60
-  },
-  "abilities": [
-    {"name": "ability 1", "damage": 50, "cooldown": 5}
-  ],
-  "weaknesses": ["weakness 1", "weakness 2"],
-  "resistances": ["resistance 1"],
-  "loot": {
-    "common": ["item 1", "item 2"],
-    "rare": ["rare item 1"],
-    "gold": "50-200"
-  },
-  "behavior": "How it fights",
-  "location": "Where it's found"
-}`,
+[Enemy Name]
+────────────────────────────────────────
+Type: [beast/humanoid/undead/etc] | Level: [number]
+
+[Visual and behavioral description]
+
+Stats:
+  Health: [value]
+  Attack: [value]
+  Defense: [value]
+  Speed: [value]
+
+Abilities:
+  ⚔️ [Ability 1]: [Damage/Effect] (Cooldown: [time])
+  ⚔️ [Ability 2]: [Damage/Effect] (Cooldown: [time])
+
+Weaknesses: [List weaknesses]
+Resistances: [List resistances]
+
+Loot Drops:
+  Common: [Items]
+  Rare: [Items]
+  Gold: [Range]
+
+Behavior: [How it fights]
+Found in: [Location]`,
 
   item: (userPrompt) => `
 You are a professional item designer. Create a game item based on: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "name": "Item name",
-  "type": "weapon",
-  "rarity": "rare",
-  "description": "Flavor text description",
-  "stats": {
-    "damage": 75,
-    "defense": 0,
-    "bonus": "+10 Strength"
-  },
-  "effects": ["effect 1", "effect 2"],
-  "requirements": {
-    "level": 10,
-    "class": "any"
-  },
-  "value": 500,
-  "weight": 5,
-  "durability": 100,
-  "lore": "Item backstory",
-  "obtainedFrom": "How to get this item"
-}`,
+[Item Name]
+════════════════════════════════════════
+Type: [weapon/armor/consumable/etc]
+Rarity: ⭐⭐⭐ [rare/epic/legendary]
+
+[Flavor text description]
+
+Stats:
+  Damage: [value] (if weapon)
+  Defense: [value] (if armor)
+  Special: [bonus effects]
+
+Effects:
+  • [Effect 1]
+  • [Effect 2]
+
+Requirements:
+  Level: [number]
+  Class: [class requirements]
+
+Value: [price] gold
+Weight: [number] kg
+Durability: [number]/100
+
+Lore: [Item backstory]
+How to Obtain: [Where/how to get it]`,
 
   storyBeat: (userPrompt) => `
 You are a professional narrative designer. Create a story moment based on: "${userPrompt}"
 
-CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+Format your response in a beautiful, readable text format like this:
 
-Return this EXACT structure:
-{
-  "title": "Story beat title",
-  "chapter": "Chapter 1",
-  "setting": "Where this happens",
-  "characters": ["character 1", "character 2"],
-  "conflict": "The main tension/problem",
-  "scene": "Detailed narrative description",
-  "choices": [
-    {
-      "option": "Player choice 1",
-      "consequence": "What happens",
-      "emotionalImpact": "How it affects story"
-    }
-  ],
-  "mood": "tense",
-  "foreshadowing": "Hints about future events"
-}`
+[Story Beat Title]
+════════════════════════════════════════
+Chapter: [Chapter name/number]
+Setting: [Where this happens]
+Characters: [Who's involved]
+
+THE CONFLICT:
+[Describe the main tension or problem]
+
+THE SCENE:
+[Write the detailed narrative - make it immersive and engaging]
+
+PLAYER CHOICES:
+
+  Option 1: [Player choice 1]
+    → Consequence: [What happens]
+    → Emotional Impact: [How it affects the story]
+
+  Option 2: [Player choice 2]
+    → Consequence: [What happens]
+    → Emotional Impact: [How it affects the story]
+
+Mood: [tense/hopeful/dark/etc]
+Foreshadowing: [Hints about future events]`
 };
 
 // ============================================
-// IMPROVED JSON PARSER
-// ============================================
-const parseJSONResponse = (text, type) => {
-  try {
-    let cleanedText = text.trim();
-    
-    console.log('🔍 Parsing response...');
-    console.log('📝 Original length:', text.length);
-    
-    // Remove markdown code blocks
-    cleanedText = cleanedText.replace(/^```json\s*/i, '');
-    cleanedText = cleanedText.replace(/^```\s*/i, '');
-    cleanedText = cleanedText.replace(/\s*```$/i, '');
-    cleanedText = cleanedText.trim();
-    
-    // Remove any text before the first { or [
-    const jsonStart = cleanedText.search(/[\{\[]/);
-    if (jsonStart > 0) {
-      cleanedText = cleanedText.substring(jsonStart);
-    }
-    
-    // Remove any text after the last } or ]
-    const jsonEnd = Math.max(
-      cleanedText.lastIndexOf('}'),
-      cleanedText.lastIndexOf(']')
-    );
-    if (jsonEnd > -1 && jsonEnd < cleanedText.length - 1) {
-      cleanedText = cleanedText.substring(0, jsonEnd + 1);
-    }
-    
-    console.log('✂️ Cleaned text length:', cleanedText.length);
-    
-    // Try to parse
-    const parsed = JSON.parse(cleanedText);
-    console.log('✅ Successfully parsed JSON');
-    return parsed;
-
-  } catch (parseError) {
-    console.warn('⚠️ JSON parse failed:', parseError.message);
-    console.log('📄 Problematic text:', text.substring(0, 200));
-    
-    // Try to extract JSON object using regex
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const extracted = JSON.parse(jsonMatch[0]);
-        console.log('✅ Extracted JSON using regex');
-        return extracted;
-      }
-    } catch (regexError) {
-      console.warn('⚠️ Regex extraction also failed');
-    }
-    
-    // Last resort: return error object
-    return {
-      rawText: text,
-      error: 'Could not parse as JSON',
-      parseError: parseError.message,
-      note: 'AI returned non-JSON response',
-      type: type
-    };
-  }
-};
-
-// ============================================
-// ✅ GROQ API - FREE & WORKS EVERYWHERE! 
+// ✅ GROQ API - RETURNS PLAIN TEXT
 // ============================================
 exports.callGemini = async (promptText, type = 'text') => {
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -274,18 +232,18 @@ exports.callGemini = async (promptText, type = 'text') => {
     const response = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
-        model: 'llama-3.3-70b-versatile', // FREE model - very good quality!
+        model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content: 'You are a professional game content generator. Always return valid JSON objects without markdown code blocks or extra text. Never include ```json or ``` in your response.'
+            content: 'You are a professional game content generator. Create beautiful, well-formatted text responses. Use Unicode characters like ─, ═, •, →, ⭐, ⚔️, 💡 to make content visually appealing. Do NOT return JSON - return plain, formatted text that is easy to read.'
           },
           {
             role: 'user',
             content: enhancedPrompt
           }
         ],
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: 2000,
         top_p: 0.95
       },
@@ -303,31 +261,12 @@ exports.callGemini = async (promptText, type = 'text') => {
     console.log('✅ Content generated successfully!');
     console.log('📄 Response length:', generatedText.length, 'characters');
 
-    // Parse JSON if structured content
-    if (GAME_PROMPTS[type]) {
-      return parseJSONResponse(generatedText, type);
-    }
-    
-    // For text type, try to parse as JSON, but return text if not
-    if (type === 'text') {
-      const trimmed = generatedText.trim();
-      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-        try {
-          return parseJSONResponse(generatedText, type);
-        } catch (e) {
-          return generatedText;
-        }
-      }
-      return generatedText;
-    }
-    
+    // Return the raw text as-is
     return generatedText;
 
   } catch (error) {
     console.error('❌ Groq API Error:', error.response?.data || error.message);
     
-    // Better error messages
     if (error.code === 'ECONNABORTED') {
       throw new Error('Request timeout. Please try again.');
     }
@@ -349,35 +288,22 @@ exports.callGemini = async (promptText, type = 'text') => {
 };
 
 // ============================================
-// VALIDATION FUNCTION
+// VALIDATION FUNCTION - SIMPLIFIED
 // ============================================
 exports.validateGameContent = (content, type) => {
-  // Handle error objects
-  if (content && content.error) {
+  // For text content, just check if we got something
+  if (!content || content.length < 50) {
     return {
       isValid: false,
-      missing: ['All fields (parse error)'],
-      content,
-      error: content.error
+      error: 'Content too short or empty',
+      content
     };
   }
 
-  const validations = {
-    character: ['name', 'class', 'backstory'],
-    quest: ['title', 'description', 'objectives'],
-    dialogue: ['npcName', 'dialogueOptions'],
-    enemy: ['name', 'type', 'stats'],
-    item: ['name', 'type', 'rarity'],
-    storyBeat: ['title', 'scene', 'choices']
-  };
-
-  const required = validations[type] || [];
-  const missing = required.filter(field => !content[field]);
-  
   return {
-    isValid: missing.length === 0,
-    missing,
-    content
+    isValid: true,
+    content,
+    format: 'markdown-text'
   };
 };
 
@@ -465,7 +391,7 @@ exports.generateImage = async (prompt, options = {}) => {
 };
 
 // ============================================
-// IMAGE TO IMAGE - FIXED VERSION
+// IMAGE TO IMAGE
 // ============================================
 exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {}) => {
   try {
@@ -499,17 +425,14 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
     const enhancedPrompt = `${prompt}, ${styleEnhancers[artStyle] || styleEnhancers['2d']}, high quality, professional game asset`;
     console.log('✨ Enhanced prompt:', enhancedPrompt);
 
-    // Convert base64 to Blob
     let imageBlob;
     try {
       let base64Data = sourceImageBase64;
       
-      // Handle data URL format
       if (sourceImageBase64.includes('data:image')) {
         base64Data = sourceImageBase64.split(',')[1];
       }
       
-      // Remove any whitespace
       base64Data = base64Data.replace(/\s/g, '');
       
       const binaryData = Buffer.from(base64Data, 'base64');
@@ -521,7 +444,6 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
       throw new Error('Invalid image data format. Please provide valid base64 image.');
     }
 
-    // Try image-to-image first
     try {
       console.log('🔄 Attempting image-to-image transformation...');
       
@@ -570,7 +492,6 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
       console.log('⚠️ Image-to-image failed, falling back to text-to-image...');
       console.log('Error:', img2imgError.message);
       
-      // Fallback to text-to-image
       const fallbackResult = await exports.generateImage(enhancedPrompt, { 
         width, 
         height, 
@@ -584,7 +505,7 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
         strength,
         transformationType: 'text-to-image-fallback',
         fallbackReason: img2imgError.message,
-        note: 'Used text-to-image as fallback due to image-to-image limitations'
+        note: 'Used text-to-image as fallback'
       };
     }
 
@@ -592,18 +513,17 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
     console.error('❌ Image-to-image transformation error:', error);
     
     if (error.message.includes('timeout')) {
-      throw new Error('Image transformation timed out. Model may be loading. Try again in 60 seconds.');
+      throw new Error('Image transformation timed out. Try again in 60 seconds.');
     }
     
     if (error.message.includes('Invalid image')) {
-      throw new Error('Invalid source image. Please provide a valid base64 encoded image.');
+      throw new Error('Invalid source image. Please provide valid base64 image.');
     }
     
     throw new Error(`Image transformation failed: ${error.message}`);
   }
 };
 
-// Helper function for creating game asset prompts
 exports.createGameAssetPrompt = (type, userDescription, style = '2d') => {
   const templates = {
     character: {

@@ -12,31 +12,26 @@ const handleError = (err, res, context) => {
   let tip = 'Try again in a moment';
   let statusCode = 500;
   
-  // Rate limit errors
   if (errorMessage.includes('rate') || errorMessage.includes('429')) {
     errorMessage = 'Rate limit exceeded';
     tip = 'Please wait 5-10 minutes before trying again. Free tier has limited requests.';
     statusCode = 429;
   }
-  // Timeout errors
   else if (errorMessage.includes('timeout')) {
     errorMessage = 'Request timed out';
     tip = 'The API took too long. Try again with a simpler prompt or wait a moment.';
     statusCode = 504;
   }
-  // All models failed
   else if (errorMessage.includes('All models failed')) {
     errorMessage = 'All AI models are currently unavailable';
     tip = 'Hugging Face free tier may be experiencing high traffic. Try again in 10-15 minutes.';
     statusCode = 503;
   }
-  // Model loading errors
   else if (errorMessage.includes('loading') || errorMessage.includes('503')) {
     errorMessage = 'Model is loading';
     tip = 'The AI model is starting up (cold start). Please wait 30-60 seconds and try again.';
     statusCode = 503;
   }
-  // API key errors
   else if (errorMessage.includes('API') && errorMessage.includes('key')) {
     errorMessage = 'API configuration error';
     tip = 'Server configuration issue. Please contact support.';
@@ -53,7 +48,7 @@ const handleError = (err, res, context) => {
 };
 
 // ============================================
-// CHARACTER GENERATION
+// CHARACTER GENERATION - TEXT FORMAT
 // ============================================
 exports.createCharacter = async (req, res) => {
   const { prompt, characterType } = req.body;
@@ -67,18 +62,17 @@ exports.createCharacter = async (req, res) => {
     console.log('🎮 Generating character...');
     console.log('📝 User prompt:', userPrompt);
     
-    const character = await callGemini(userPrompt, 'character');
+    const characterText = await callGemini(userPrompt, 'character');
     
-    // Validate character has required fields
-    const validation = validateGameContent(character, 'character');
+    const validation = validateGameContent(characterText, 'character');
     
     const saved = await GameContent.create({ 
       prompt: userPrompt, 
-      response: character,
+      response: { text: characterText }, // Store as text
       type: 'character',
       category: 'character',
       metadata: {
-        characterClass: character.class,
+        format: 'markdown-text',
         validated: validation.isValid,
         generatedWith: 'groq-free'
       }
@@ -88,11 +82,11 @@ exports.createCharacter = async (req, res) => {
 
     res.json({ 
       success: true,
-      character,
+      character: characterText, // Return plain text
       validation,
       savedId: saved._id,
-      info: '✅ Generated using Groq FREE API (Fast & Reliable)',
-      warning: validation.isValid ? null : 'Some fields may be missing due to AI limitations'
+      format: 'markdown-text',
+      info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
     handleError(err, res, 'generate character');
@@ -100,7 +94,7 @@ exports.createCharacter = async (req, res) => {
 };
 
 // ============================================
-// QUEST GENERATION
+// QUEST GENERATION - TEXT FORMAT
 // ============================================
 exports.generateQuest = async (req, res) => {
   const { prompt, difficulty, questType } = req.body;
@@ -112,18 +106,17 @@ exports.generateQuest = async (req, res) => {
 
   try {
     console.log('🎮 Generating quest...');
-    const quest = await callGemini(questPrompt, 'quest');
+    const questText = await callGemini(questPrompt, 'quest');
     
-    const validation = validateGameContent(quest, 'quest');
+    const validation = validateGameContent(questText, 'quest');
     
     const saved = await GameContent.create({ 
       prompt: questPrompt, 
-      response: quest,
+      response: { text: questText },
       type: 'quest',
       category: 'quest',
       metadata: {
-        difficulty: quest.difficulty,
-        questType: quest.type,
+        format: 'markdown-text',
         validated: validation.isValid,
         generatedWith: 'groq-free'
       }
@@ -131,9 +124,10 @@ exports.generateQuest = async (req, res) => {
 
     res.json({ 
       success: true,
-      quest,
+      quest: questText, // Return plain text
       validation,
       savedId: saved._id,
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
@@ -142,7 +136,7 @@ exports.generateQuest = async (req, res) => {
 };
 
 // ============================================
-// DIALOGUE GENERATION
+// DIALOGUE GENERATION - TEXT FORMAT
 // ============================================
 exports.generateDialogue = async (req, res) => {
   const { prompt, npcType, mood } = req.body;
@@ -154,18 +148,17 @@ exports.generateDialogue = async (req, res) => {
 
   try {
     console.log('🎮 Generating dialogue...');
-    const dialogue = await callGemini(dialoguePrompt, 'dialogue');
+    const dialogueText = await callGemini(dialoguePrompt, 'dialogue');
     
-    const validation = validateGameContent(dialogue, 'dialogue');
+    const validation = validateGameContent(dialogueText, 'dialogue');
     
     const saved = await GameContent.create({ 
       prompt: dialoguePrompt, 
-      response: dialogue,
+      response: { text: dialogueText },
       type: 'dialogue',
       category: 'dialogue',
       metadata: {
-        npcRole: dialogue.npcRole,
-        mood: dialogue.mood,
+        format: 'markdown-text',
         validated: validation.isValid,
         generatedWith: 'groq-free'
       }
@@ -173,9 +166,10 @@ exports.generateDialogue = async (req, res) => {
 
     res.json({ 
       success: true,
-      dialogue,
+      dialogue: dialogueText,
       validation,
       savedId: saved._id,
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
@@ -184,7 +178,7 @@ exports.generateDialogue = async (req, res) => {
 };
 
 // ============================================
-// WORLD GENERATION
+// WORLD GENERATION - TEXT FORMAT
 // ============================================
 exports.generateWorld = async (req, res) => {
   const { prompt, locationType } = req.body;
@@ -193,24 +187,24 @@ exports.generateWorld = async (req, res) => {
 
   try {
     console.log('🎮 Generating world...');
-    const world = await callGemini(worldPrompt, 'worldBuilding');
+    const worldText = await callGemini(worldPrompt, 'worldBuilding');
     
     const saved = await GameContent.create({ 
       prompt: worldPrompt, 
-      response: world,
+      response: { text: worldText },
       type: 'world',
       category: 'worldBuilding',
       metadata: {
-        locationType: world.type,
-        atmosphere: world.atmosphere,
+        format: 'markdown-text',
         generatedWith: 'groq-free'
       }
     });
 
     res.json({ 
       success: true,
-      world,
+      world: worldText,
       savedId: saved._id,
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
@@ -219,7 +213,7 @@ exports.generateWorld = async (req, res) => {
 };
 
 // ============================================
-// ENEMY GENERATION
+// ENEMY GENERATION - TEXT FORMAT
 // ============================================
 exports.generateEnemy = async (req, res) => {
   const { prompt, level, enemyType } = req.body;
@@ -231,18 +225,17 @@ exports.generateEnemy = async (req, res) => {
 
   try {
     console.log('🎮 Generating enemy...');
-    const enemy = await callGemini(enemyPrompt, 'enemy');
+    const enemyText = await callGemini(enemyPrompt, 'enemy');
     
-    const validation = validateGameContent(enemy, 'enemy');
+    const validation = validateGameContent(enemyText, 'enemy');
     
     const saved = await GameContent.create({ 
       prompt: enemyPrompt, 
-      response: enemy,
+      response: { text: enemyText },
       type: 'enemy',
       category: 'enemy',
       metadata: {
-        level: enemy.level,
-        enemyType: enemy.type,
+        format: 'markdown-text',
         validated: validation.isValid,
         generatedWith: 'groq-free'
       }
@@ -250,9 +243,10 @@ exports.generateEnemy = async (req, res) => {
 
     res.json({ 
       success: true,
-      enemy,
+      enemy: enemyText,
       validation,
       savedId: saved._id,
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
@@ -261,7 +255,7 @@ exports.generateEnemy = async (req, res) => {
 };
 
 // ============================================
-// ITEM GENERATION
+// ITEM GENERATION - TEXT FORMAT
 // ============================================
 exports.generateItem = async (req, res) => {
   const { prompt, itemType, rarity } = req.body;
@@ -273,18 +267,17 @@ exports.generateItem = async (req, res) => {
 
   try {
     console.log('🎮 Generating item...');
-    const item = await callGemini(itemPrompt, 'item');
+    const itemText = await callGemini(itemPrompt, 'item');
     
-    const validation = validateGameContent(item, 'item');
+    const validation = validateGameContent(itemText, 'item');
     
     const saved = await GameContent.create({ 
       prompt: itemPrompt, 
-      response: item,
+      response: { text: itemText },
       type: 'item',
       category: 'item',
       metadata: {
-        itemType: item.type,
-        rarity: item.rarity,
+        format: 'markdown-text',
         validated: validation.isValid,
         generatedWith: 'groq-free'
       }
@@ -292,9 +285,10 @@ exports.generateItem = async (req, res) => {
 
     res.json({ 
       success: true,
-      item,
+      item: itemText,
       validation,
       savedId: saved._id,
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
@@ -303,7 +297,7 @@ exports.generateItem = async (req, res) => {
 };
 
 // ============================================
-// STORY GENERATION
+// STORY GENERATION - TEXT FORMAT
 // ============================================
 exports.generateStory = async (req, res) => {
   const { prompt, chapter } = req.body;
@@ -312,24 +306,24 @@ exports.generateStory = async (req, res) => {
 
   try {
     console.log('🎮 Generating story...');
-    const story = await callGemini(storyPrompt, 'storyBeat');
+    const storyText = await callGemini(storyPrompt, 'storyBeat');
     
     const saved = await GameContent.create({ 
       prompt: storyPrompt, 
-      response: story,
+      response: { text: storyText },
       type: 'story',
       category: 'narrative',
       metadata: {
-        chapter: story.chapter,
-        mood: story.mood,
+        format: 'markdown-text',
         generatedWith: 'groq-free'
       }
     });
 
     res.json({ 
       success: true,
-      story,
+      story: storyText,
       savedId: saved._id,
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (err) {
@@ -338,7 +332,7 @@ exports.generateStory = async (req, res) => {
 };
 
 // ============================================
-// GENERAL PROMPT HANDLER - FIXED JSON PARSING
+// GENERAL PROMPT HANDLER - TEXT FORMAT
 // ============================================
 exports.handlePrompt = async (req, res) => {
   const { prompt, type } = req.body;
@@ -349,35 +343,15 @@ exports.handlePrompt = async (req, res) => {
 
   try {
     console.log('🎮 Processing general prompt...');
-    const response = await callGemini(prompt, type || 'text');
-    
-    // Ensure response is always an object
-    let processedResponse;
-    if (typeof response === 'string') {
-      // Try to parse if it looks like JSON
-      try {
-        const trimmed = response.trim();
-        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-            (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-          processedResponse = JSON.parse(trimmed);
-        } else {
-          processedResponse = { text: response };
-        }
-      } catch (parseErr) {
-        processedResponse = { text: response };
-      }
-    } else if (typeof response === 'object' && response !== null) {
-      processedResponse = response;
-    } else {
-      processedResponse = { text: String(response) };
-    }
+    const responseText = await callGemini(prompt, type || 'text');
     
     const saved = await GameContent.create({ 
       prompt, 
-      response: processedResponse,
+      response: { text: responseText },
       type: type || 'general',
       category: 'custom',
       metadata: {
+        format: 'markdown-text',
         generatedWith: 'groq-free',
         timestamp: new Date()
       }
@@ -385,9 +359,10 @@ exports.handlePrompt = async (req, res) => {
 
     res.json({ 
       success: true,
-      response: processedResponse, 
+      response: responseText, 
       savedId: saved._id,
       type: type || 'general',
+      format: 'markdown-text',
       info: '✅ Generated using Groq FREE API (Fast & Reliable)'
     });
   } catch (error) {
@@ -441,7 +416,7 @@ exports.generateImageFromText = async (req, res) => {
 };
 
 // ============================================
-// IMAGE: IMAGE TO IMAGE - FIXED VERSION
+// IMAGE: IMAGE TO IMAGE
 // ============================================
 exports.generateImageFromImageInput = async (req, res) => {
   try {
@@ -455,17 +430,9 @@ exports.generateImageFromImageInput = async (req, res) => {
     }
 
     console.log('🎨 Starting image-to-image conversion...');
-    console.log('📊 Parameters:', { 
-      hasPrompt: !!prompt, 
-      artStyle, 
-      assetType, 
-      strength,
-      dimensions: `${width || 512}x${height || 512}`
-    });
 
     let enhancedPrompt = prompt;
 
-    // Auto-generate prompt if not provided
     if (!prompt || !prompt.trim()) {
       const assetDescriptions = {
         'character': 'professional game character with detailed design',
@@ -516,8 +483,6 @@ exports.generateImageFromImageInput = async (req, res) => {
       }
     });
 
-    console.log('✅ Transformation successful!');
-
     res.json({
       success: true,
       message: 'Image transformed successfully!',
@@ -532,7 +497,6 @@ exports.generateImageFromImageInput = async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Image transformation failed:', err);
     handleError(err, res, 'transform image');
   }
 };
