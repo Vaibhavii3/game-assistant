@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layers, Loader2, CheckCircle, XCircle, Download, Globe, Copy, Check, Image as ImageIcon, Sparkles, ChevronRight } from 'lucide-react';
 
@@ -207,6 +208,35 @@ const BatchGeneration = () => {
     link.download = `batch-results-${Date.now()}.json`;
     link.click();
   };
+
+  // Get the actual results data based on response structure
+  const getResultsData = () => {
+    if (!results) return null;
+    
+    // New structure uses 'data' field
+    if (results.data) return results.data;
+    
+    // Fallback to old structure
+    if (results.results) return results.results;
+    
+    return null;
+  };
+
+  // Get stats/metadata
+  const getStats = () => {
+    if (!results) return null;
+    
+    // New structure uses 'metadata'
+    if (results.metadata) return results.metadata;
+    
+    // Fallback to old structure
+    if (results.stats) return results.stats;
+    
+    return null;
+  };
+
+  const resultsData = getResultsData();
+  const stats = getStats();
 
   return (
     <div className="batch-app">
@@ -794,7 +824,7 @@ const BatchGeneration = () => {
           margin-top: 12px;
         }
 
-        .json-display {
+        .text-display {
           font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
           font-size: 0.85rem;
           line-height: 1.6;
@@ -934,7 +964,7 @@ const BatchGeneration = () => {
                 <Layers size={28} />
                 Batch Generation Engine
               </h1>
-              <p>Generate multiple content pieces at once with structured JSON output</p>
+              <p>Generate multiple content pieces at once with beautifully formatted text output</p>
             </div>
             <button className="home-nav-btn" onClick={navigateToHome}>
               <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
@@ -1235,7 +1265,7 @@ const BatchGeneration = () => {
             </div>
           )}
 
-          {results && (
+          {results && resultsData && (
             <div className="results-box">
               <div className="results-header">
                 <h3>
@@ -1248,35 +1278,41 @@ const BatchGeneration = () => {
                 </button>
               </div>
 
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-label">Total Generated</div>
-                  <div className="stat-value">{results.stats?.successful || results.stats?.totalPieces || 0}</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Success Rate</div>
-                  <div className="stat-value">
-                    {results.stats?.successful ? 
-                      `${((results.stats.successful / results.stats.total) * 100).toFixed(0)}%` : 
-                      '100%'}
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Duration</div>
-                  <div className="stat-value">{results.stats?.duration || 'N/A'}</div>
-                </div>
-                {results.stats?.averageTime && (
+              {stats && (
+                <div className="stats-grid">
                   <div className="stat-card">
-                    <div className="stat-label">Avg Time/Item</div>
-                    <div className="stat-value">{results.stats.averageTime}</div>
+                    <div className="stat-label">Total Generated</div>
+                    <div className="stat-value">{stats.successful || stats.totalPieces || stats.total || 0}</div>
                   </div>
-                )}
-              </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Success Rate</div>
+                    <div className="stat-value">
+                      {stats.successful && stats.total ? 
+                        `${((stats.successful / stats.total) * 100).toFixed(0)}%` : 
+                        '100%'}
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Duration</div>
+                    <div className="stat-value">
+                      {typeof stats.duration === 'number' ? `${stats.duration.toFixed(2)}s` : stats.duration || 'N/A'}
+                    </div>
+                  </div>
+                  {stats.averageTime && (
+                    <div className="stat-card">
+                      <div className="stat-label">Avg Time/Item</div>
+                      <div className="stat-value">
+                        {typeof stats.averageTime === 'number' ? `${stats.averageTime.toFixed(2)}s` : stats.averageTime}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {batchType === 'images' && results.results && (
+              {batchType === 'images' && Array.isArray(resultsData) && (
                 <div className="image-grid">
-                  {results.results.map((result, idx) => (
-                    result.success && (
+                  {resultsData.map((result, idx) => (
+                    result.success && result.imageUrl && (
                       <div key={idx} className="image-result">
                         <img src={result.imageUrl} alt={result.prompt} />
                         <div className="image-prompt"><strong>Prompt:</strong> {result.prompt}</div>
@@ -1302,20 +1338,23 @@ const BatchGeneration = () => {
                 </div>
               )}
 
-              {batchType === 'single' && results.results && (
+              {batchType === 'single' && Array.isArray(resultsData) && (
                 <div className="results-list">
                   <h4 style={{ marginBottom: '16px', color: '#2d3748', fontSize: '1.1rem', fontWeight: 600 }}>
                     Generated Items:
                   </h4>
-                  {results.results.map((result, idx) => (
-                    <div key={idx} className={`result-item ${result.success ? 'success' : 'error'}`}>
+                  {resultsData.map((result, idx) => (
+                    <div key={idx} className={`result-item ${result.success !== false ? 'success' : 'error'}`}>
                       <div className="result-header">
                         <span className="result-index">Item {result.index}</span>
                         <div className="result-actions">
-                          {result.success && (
+                          {result.content && (
                             <button
                               className={`copy-btn ${copiedIndex === idx ? 'copied' : ''}`}
-                              onClick={() => copyToClipboard(result.contentJson || JSON.stringify(result.content, null, 2), idx)}
+                              onClick={() => copyToClipboard(
+                                typeof result.content === 'string' ? result.content : JSON.stringify(result.content, null, 2), 
+                                idx
+                              )}
                             >
                               {copiedIndex === idx ? (
                                 <>
@@ -1325,13 +1364,13 @@ const BatchGeneration = () => {
                               ) : (
                                 <>
                                   <Copy size={14} />
-                                  Copy JSON
+                                  Copy Content
                                 </>
                               )}
                             </button>
                           )}
                           <span className="result-status">
-                            {result.success ? (
+                            {result.success !== false ? (
                               <>
                                 <CheckCircle size={16} color="#48bb78" />
                                 Success
@@ -1345,10 +1384,10 @@ const BatchGeneration = () => {
                           </span>
                         </div>
                       </div>
-                      {result.success && result.content && (
+                      {result.content && (
                         <div className="result-content">
-                          <div className="json-display">
-                            {result.contentJson || JSON.stringify(result.content, null, 2)}
+                          <div className="text-display">
+                            {typeof result.content === 'string' ? result.content : JSON.stringify(result.content, null, 2)}
                           </div>
                         </div>
                       )}
@@ -1362,13 +1401,13 @@ const BatchGeneration = () => {
                 </div>
               )}
 
-              {batchType === 'world' && results.results && (
+              {batchType === 'world' && resultsData && typeof resultsData === 'object' && (
                 <div>
                   <h4 style={{ marginBottom: '20px', color: '#2d3748', fontSize: '1.2rem', fontWeight: 600 }}>
-                    Generated World: {results.stats?.theme}
+                    Generated World: {stats?.theme || 'Custom World'}
                   </h4>
                   
-                  {Object.entries(results.results).map(([category, items]) => {
+                  {Object.entries(resultsData).map(([category, items]) => {
                     if (category === 'theme' || !Array.isArray(items) || items.length === 0) return null;
                     
                     return (
@@ -1388,7 +1427,10 @@ const BatchGeneration = () => {
                                 </span>
                                 <button
                                   className={`copy-btn ${copiedIndex === `${category}-${idx}` ? 'copied' : ''}`}
-                                  onClick={() => copyToClipboard(item.contentJson || JSON.stringify(item.content, null, 2), `${category}-${idx}`)}
+                                  onClick={() => copyToClipboard(
+                                    typeof item.content === 'string' ? item.content : JSON.stringify(item.content, null, 2), 
+                                    `${category}-${idx}`
+                                  )}
                                 >
                                   {copiedIndex === `${category}-${idx}` ? (
                                     <>
@@ -1398,14 +1440,14 @@ const BatchGeneration = () => {
                                   ) : (
                                     <>
                                       <Copy size={14} />
-                                      Copy JSON
+                                      Copy Content
                                     </>
                                   )}
                                 </button>
                               </div>
                               <div className="result-content">
-                                <div className="json-display">
-                                  {item.contentJson || JSON.stringify(item.content, null, 2)}
+                                <div className="text-display">
+                                  {typeof item.content === 'string' ? item.content : JSON.stringify(item.content, null, 2)}
                                 </div>
                               </div>
                             </div>

@@ -308,7 +308,7 @@ exports.validateGameContent = (content, type) => {
 };
 
 // ============================================
-// IMAGE GENERATION - Using Hugging Face
+// IMAGE GENERATION - Using FREE Hugging Face Models
 // ============================================
 const { HfInference } = require("@huggingface/inference");
 
@@ -327,63 +327,128 @@ exports.generateImage = async (prompt, options = {}) => {
       seed = Math.floor(Math.random() * 1000000)
     } = options;
 
-    console.log('🎨 Generating image with Hugging Face...');
+    console.log('🎨 Generating image with Hugging Face FREE serverless inference...');
     console.log('📊 Parameters:', { width, height, model, seed });
 
     const hf = new HfInference(HF_KEY);
 
+    // Models with FREE serverless inference enabled by default
+    const freeModels = [
+      'stabilityai/stable-diffusion-2-1',     // SD 2.1 - always free
+      'stabilityai/stable-diffusion-xl-base-1.0', // SDXL base - free serverless
+      'prompthero/openjourney',               // Openjourney v1 - free
+      'SG161222/Realistic_Vision_V2.0',      // Realistic Vision - free
+      'dreamlike-art/dreamlike-photoreal-2.0' // Dreamlike - free
+    ];
+
     const modelMapping = {
-      'turbo': 'stabilityai/sdxl-turbo',
-      'flux': 'black-forest-labs/FLUX.1-schnell',
-      'sd': 'runwayml/stable-diffusion-v1-5'
+      'turbo': 'stabilityai/stable-diffusion-2-1',
+      'sdxl': 'stabilityai/stable-diffusion-xl-base-1.0',
+      'artistic': 'prompthero/openjourney',
+      'realistic': 'SG161222/Realistic_Vision_V2.0',
+      'photo': 'dreamlike-art/dreamlike-photoreal-2.0'
     };
 
     const selectedModel = modelMapping[model] || modelMapping['turbo'];
-    console.log('🤖 Using model:', selectedModel);
+    console.log('🤖 Using FREE serverless model:', selectedModel);
 
-    const blob = await Promise.race([
-      hf.textToImage({
-        model: selectedModel,
-        inputs: prompt,
-        parameters: {
-          width: Math.min(width, 768),
-          height: Math.min(height, 768),
-          num_inference_steps: model === 'turbo' ? 4 : 25,
-          guidance_scale: model === 'turbo' ? 0 : 7.5
+    // Use smaller dimensions for free tier
+    const safeWidth = Math.min(width, 768);
+    const safeHeight = Math.min(height, 768);
+
+    let blob;
+    let usedModel = selectedModel;
+
+    // Try primary model
+    try {
+      console.log('🔄 Attempting with:', selectedModel);
+      blob = await Promise.race([
+        hf.textToImage({
+          model: selectedModel,
+          inputs: prompt,
+          parameters: {
+            num_inference_steps: 30,
+            guidance_scale: 7.5
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 120000) // 2 min timeout
+        )
+      ]);
+      console.log('✅ Primary model succeeded!');
+    } catch (primaryError) {
+      console.log('⚠️ Primary model failed:', primaryError.message);
+      console.log('🔄 Trying fallback FREE serverless models...');
+      
+      // Try fallback models one by one
+      for (const fallbackModel of freeModels) {
+        if (fallbackModel === selectedModel) continue; // Skip already tried model
+        
+        try {
+          console.log('🔄 Trying fallback:', fallbackModel);
+          blob = await Promise.race([
+            hf.textToImage({
+              model: fallbackModel,
+              inputs: prompt,
+              parameters: {
+                num_inference_steps: 30,
+                guidance_scale: 7.5
+              }
+            }),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('timeout')), 120000)
+            )
+          ]);
+          usedModel = fallbackModel;
+          console.log('✅ Fallback model succeeded:', fallbackModel);
+          break;
+        } catch (fallbackError) {
+          console.log('❌ Fallback failed:', fallbackModel, '-', fallbackError.message);
+          continue;
         }
-      }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('timeout')), 60000)
-      )
-    ]);
+      }
+
+      if (!blob) {
+        throw new Error('All FREE serverless models are currently busy. This is a temporary Hugging Face issue. Solutions: 1) Wait 10-15 minutes, 2) Try during off-peak hours (late night/early morning), 3) Use smaller dimensions (256x256)');
+      }
+    }
 
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const base64Image = buffer.toString('base64');
     const imageUrl = `data:image/png;base64,${base64Image}`;
 
-    console.log('✅ Image generated successfully!');
+    console.log('✅ Image generated successfully with:', usedModel);
 
     return {
       imageUrl,
       prompt,
-      model: selectedModel,
+      model: usedModel,
       seed,
-      width: Math.min(width, 768),
-      height: Math.min(height, 768),
-      source: 'huggingface-free',
-      format: 'base64'
+      width: safeWidth,
+      height: safeHeight,
+      source: 'huggingface-free-serverless',
+      format: 'base64',
+      note: 'Generated with 100% FREE serverless inference (no payment required)'
     };
 
   } catch (error) {
     console.error('❌ Image generation error:', error.message);
     
     if (error.message === 'timeout') {
-      throw new Error('Image generation timed out. Model may be loading. Try again in 30-60 seconds.');
+      throw new Error('Image generation timed out. Models are experiencing heavy load. Try again in 10-15 minutes or use a simpler prompt.');
     }
     
-    if (error.response?.status === 503) {
-      throw new Error('Model is loading. Please wait 30-60 seconds and try again (cold start).');
+    if (error.response?.status === 503 || error.message.includes('loading')) {
+      throw new Error('Model is starting up (cold start). Please wait 60-90 seconds and try again.');
+    }
+
+    if (error.message.includes('Provider') || error.message.includes('inference')) {
+      throw new Error('Hugging Face free tier is temporarily overloaded. Try again in 10-15 minutes or during off-peak hours.');
+    }
+
+    if (error.message.includes('credits') || error.message.includes('payment')) {
+      throw new Error('Payment model detected. All free models are busy. Try again in 10-15 minutes.');
     }
     
     throw new Error(`Image generation failed: ${error.message}`);
@@ -493,8 +558,8 @@ exports.generateImageFromImage = async (sourceImageBase64, prompt, options = {})
       console.log('Error:', img2imgError.message);
       
       const fallbackResult = await exports.generateImage(enhancedPrompt, { 
-        width, 
-        height, 
+        width: 512,
+        height: 512,
         model: 'turbo', 
         seed 
       });

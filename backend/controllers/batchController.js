@@ -64,25 +64,38 @@ exports.batchGenerate = async (req, res) => {
         }
 
         // Store result with properly formatted content
+        // If content is a string (text format), keep it as-is
+        // If content is an object, keep the structure
+        const formattedContent = typeof content === 'string' 
+          ? content 
+          : content;
+
         results.push({
+          id: savedId,
           index: i + 1,
+          type,
           prompt,
-          content,
-          contentJson: JSON.stringify(content, null, 2), // Pretty formatted JSON
-          validation,
-          savedId,
-          success: true
+          content: formattedContent, // Keep original format
+          validation: {
+            isValid: validation.isValid,
+            errors: validation.errors || [],
+            warnings: validation.warnings || []
+          },
+          success: true,
+          generatedAt: new Date().toISOString()
         });
 
       } catch (err) {
         console.error(`❌ Error generating item ${i + 1}:`, err.message);
         errors.push({
           index: i + 1,
-          error: err.message
+          error: err.message,
+          type
         });
 
         results.push({
           index: i + 1,
+          type,
           success: false,
           error: err.message
         });
@@ -100,22 +113,33 @@ exports.batchGenerate = async (req, res) => {
     res.json({
       success: true,
       message: `Generated ${successCount} out of ${count} items`,
-      stats: {
+      metadata: {
         total: count,
         successful: successCount,
         failed: errors.length,
-        duration: `${duration}s`,
-        averageTime: `${(duration / count).toFixed(2)}s per item`
+        type,
+        duration: parseFloat(duration),
+        averageTime: parseFloat((duration / count).toFixed(2)),
+        timestamp: new Date().toISOString()
       },
-      results,
+      data: results.filter(r => r.success).map(item => ({
+        id: item.id,
+        index: item.index,
+        type: item.type,
+        prompt: item.prompt,
+        content: item.content, // This is the actual text/data
+        validation: item.validation,
+        generatedAt: item.generatedAt
+      })),
       errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (err) {
     console.error('❌ Batch generation error:', err);
     res.status(500).json({
+      success: false,
       error: 'Batch generation failed',
-      details: err.message
+      message: err.message
     });
   }
 };
@@ -143,8 +167,7 @@ exports.batchGenerateWorld = async (req, res) => {
     console.log(`🌍 Generating complete world: ${theme}`);
     console.log(`📊 Total pieces: ${total}`);
 
-    const results = {
-      theme,
+    const worldData = {
       characters: [],
       quests: [],
       enemies: [],
@@ -168,10 +191,12 @@ exports.batchGenerateWorld = async (req, res) => {
             category: 'character',
             metadata: { worldTheme: theme, batchGeneration: true }
           });
-          results.characters.push({ 
-            content, 
-            contentJson: JSON.stringify(content, null, 2),
-            savedId: saved._id 
+          
+          worldData.characters.push({ 
+            id: saved._id,
+            type: 'character',
+            content: content, // Keep text format
+            prompt
           });
         } catch (err) {
           console.error(`Error generating character ${i + 1}:`, err.message);
@@ -193,10 +218,12 @@ exports.batchGenerateWorld = async (req, res) => {
             category: 'quest',
             metadata: { worldTheme: theme, batchGeneration: true }
           });
-          results.quests.push({ 
-            content, 
-            contentJson: JSON.stringify(content, null, 2),
-            savedId: saved._id 
+          
+          worldData.quests.push({ 
+            id: saved._id,
+            type: 'quest',
+            content: content,
+            prompt
           });
         } catch (err) {
           console.error(`Error generating quest ${i + 1}:`, err.message);
@@ -218,10 +245,12 @@ exports.batchGenerateWorld = async (req, res) => {
             category: 'enemy',
             metadata: { worldTheme: theme, batchGeneration: true }
           });
-          results.enemies.push({ 
-            content, 
-            contentJson: JSON.stringify(content, null, 2),
-            savedId: saved._id 
+          
+          worldData.enemies.push({ 
+            id: saved._id,
+            type: 'enemy',
+            content: content,
+            prompt
           });
         } catch (err) {
           console.error(`Error generating enemy ${i + 1}:`, err.message);
@@ -243,10 +272,12 @@ exports.batchGenerateWorld = async (req, res) => {
             category: 'item',
             metadata: { worldTheme: theme, batchGeneration: true }
           });
-          results.items.push({ 
-            content, 
-            contentJson: JSON.stringify(content, null, 2),
-            savedId: saved._id 
+          
+          worldData.items.push({ 
+            id: saved._id,
+            type: 'item',
+            content: content,
+            prompt
           });
         } catch (err) {
           console.error(`Error generating item ${i + 1}:`, err.message);
@@ -268,10 +299,12 @@ exports.batchGenerateWorld = async (req, res) => {
             category: 'worldBuilding',
             metadata: { worldTheme: theme, batchGeneration: true }
           });
-          results.locations.push({ 
-            content, 
-            contentJson: JSON.stringify(content, null, 2),
-            savedId: saved._id 
+          
+          worldData.locations.push({ 
+            id: saved._id,
+            type: 'location',
+            content: content,
+            prompt
           });
         } catch (err) {
           console.error(`Error generating location ${i + 1}:`, err.message);
@@ -287,26 +320,28 @@ exports.batchGenerateWorld = async (req, res) => {
     res.json({
       success: true,
       message: `Complete ${theme} world generated!`,
-      stats: {
+      metadata: {
         theme,
         totalPieces: total,
-        duration: `${duration}s`,
-        breakdown: {
-          characters: results.characters.length,
-          quests: results.quests.length,
-          enemies: results.enemies.length,
-          items: results.items.length,
-          locations: results.locations.length
-        }
+        duration: parseFloat(duration),
+        counts: {
+          characters: worldData.characters.length,
+          quests: worldData.quests.length,
+          enemies: worldData.enemies.length,
+          items: worldData.items.length,
+          locations: worldData.locations.length
+        },
+        timestamp: new Date().toISOString()
       },
-      results
+      data: worldData
     });
 
   } catch (err) {
     console.error('❌ World generation error:', err);
     res.status(500).json({
+      success: false,
       error: 'World generation failed',
-      details: err.message
+      message: err.message
     });
   }
 };
@@ -328,7 +363,8 @@ exports.batchGenerateImages = async (req, res) => {
 
     console.log(`🎨 Generating ${prompts.length} images...`);
 
-    const results = [];
+    const images = [];
+    const errors = [];
     const startTime = Date.now();
 
     for (let i = 0; i < prompts.length; i++) {
@@ -336,9 +372,9 @@ exports.batchGenerateImages = async (req, res) => {
         console.log(`🖼️ Generating image ${i + 1}/${prompts.length}...`);
 
         const imageData = await generateImage(prompts[i], {
-          width,
-          height,
-          model: 'flux',
+          width: Math.min(width, 512),  // Free tier limit
+          height: Math.min(height, 512), // Free tier limit
+          model: 'turbo',  // Use turbo (completely free)
           seed: Math.floor(Math.random() * 1000000)
         });
 
@@ -356,21 +392,25 @@ exports.batchGenerateImages = async (req, res) => {
           }
         });
 
-        results.push({
+        images.push({
+          id: saved._id,
           index: i + 1,
           prompt: prompts[i],
           imageUrl: imageData.imageUrl,
-          imageData,
-          savedId: saved._id,
+          metadata: {
+            model: imageData.model,
+            dimensions: { width, height },
+            artStyle,
+            seed: imageData.seed
+          },
           success: true
         });
 
       } catch (err) {
         console.error(`❌ Image ${i + 1} failed:`, err.message);
-        results.push({
+        errors.push({
           index: i + 1,
           prompt: prompts[i],
-          success: false,
           error: err.message
         });
       }
@@ -378,25 +418,28 @@ exports.batchGenerateImages = async (req, res) => {
 
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
-    const successful = results.filter(r => r.success).length;
 
     res.json({
       success: true,
-      message: `Generated ${successful} out of ${prompts.length} images`,
-      stats: {
+      message: `Generated ${images.length} out of ${prompts.length} images`,
+      metadata: {
         total: prompts.length,
-        successful,
-        failed: prompts.length - successful,
-        duration: `${duration}s`
+        successful: images.length,
+        failed: errors.length,
+        duration: parseFloat(duration),
+        averageTime: parseFloat((duration / prompts.length).toFixed(2)),
+        timestamp: new Date().toISOString()
       },
-      results
+      data: images,
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (err) {
     console.error('❌ Batch image generation error:', err);
     res.status(500).json({
+      success: false,
       error: 'Batch image generation failed',
-      details: err.message
+      message: err.message
     });
   }
 };
@@ -422,6 +465,7 @@ exports.batchGenerateVariations = async (req, res) => {
     console.log(`🔄 Generating ${count} variations of type: ${variationType}`);
 
     const variations = [];
+    const errors = [];
 
     for (let i = 0; i < count; i++) {
       try {
@@ -448,32 +492,50 @@ exports.batchGenerateVariations = async (req, res) => {
         });
 
         variations.push({
+          id: saved._id,
           index: i + 1,
-          content,
-          contentJson: JSON.stringify(content, null, 2),
-          savedId: saved._id
+          type: original.type,
+          variationType,
+          prompt: variationPrompt,
+          content: content, // Keep text format
+          success: true
         });
       } catch (err) {
         console.error(`Error generating variation ${i + 1}:`, err.message);
+        errors.push({
+          index: i + 1,
+          error: err.message
+        });
       }
     }
 
     res.json({
       success: true,
       message: `Generated ${variations.length} variations`,
+      metadata: {
+        originalId: original._id,
+        originalType: original.type,
+        variationType,
+        totalVariations: variations.length,
+        failed: errors.length,
+        timestamp: new Date().toISOString()
+      },
       original: {
         id: original._id,
         type: original.type,
-        prompt: original.prompt
+        prompt: original.prompt,
+        content: original.response // Keep original format
       },
-      variations
+      data: variations,
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (err) {
     console.error('❌ Variation generation error:', err);
     res.status(500).json({
+      success: false,
       error: 'Variation generation failed',
-      details: err.message
+      message: err.message
     });
   }
 };
